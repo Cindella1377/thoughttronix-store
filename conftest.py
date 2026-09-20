@@ -60,6 +60,18 @@ def unavailable_product(category):
 
 
 @pytest.fixture
+def featured_product(category):
+    return Product.objects.create(
+        name="SoulSear Mark II",
+        slug="soulsear-mark-ii",
+        tagline="Warmth you can feel. Mostly.",
+        price=Decimal("899.00"),
+        is_featured=True,
+        category=category,
+    )
+
+
+@pytest.fixture
 def tag(db):
     return Tag.objects.create(name="bestseller", slug="bestseller")
 

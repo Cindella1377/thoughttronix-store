@@ -70,6 +70,7 @@
           </h2>
           <div class="flex flex-wrap gap-2">
             <span class="badge badge-outline">{{ product.category.name }}</span>
+            {% include "products/partials/_featured_badge.html" %}
             {% if not product.is_available %}
               <span class="badge badge-warning badge-outline">Unavailable</span>
             {% endif %}
