@@ -4,12 +4,13 @@ Shared test data lives here as plain fixtures — no factories. The suite
 grows with the project; tests never invoke the seed command.
 """
 
+import datetime
 from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
 
-from orders.models import Cart, CartItem
+from orders.models import Cart, CartItem, Coupon
 from products.models import Category, Product, Tag
 
 
@@ -84,3 +85,30 @@ def cart(customer):
 @pytest.fixture
 def cart_item(cart, product):
     return CartItem.objects.create(cart=cart, product=product, quantity=2)
+
+
+# A fixed moment for coupon tests: time-dependent code takes ``now``.
+COUPON_NOW = datetime.datetime(2026, 10, 1, 12, 0, tzinfo=datetime.UTC)
+
+
+@pytest.fixture
+def now():
+    return COUPON_NOW
+
+
+@pytest.fixture
+def make_coupon(db):
+    """Build a coupon, active around ``COUPON_NOW`` unless dates are given."""
+
+    def make(code, value="10", **fields):
+        fields.setdefault("discount_type", Coupon.DiscountType.PERCENT)
+        fields.setdefault("starts_at", COUPON_NOW - datetime.timedelta(days=30))
+        fields.setdefault("expires_at", COUPON_NOW + datetime.timedelta(days=30))
+        return Coupon.objects.create(code=code, value=Decimal(value), **fields)
+
+    return make
+
+
+@pytest.fixture
+def coupon(make_coupon):
+    return make_coupon("FALL10", is_public=True)

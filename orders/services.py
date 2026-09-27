@@ -6,12 +6,14 @@ validated checkout into an order, all-or-nothing. Callers never touch
 """
 
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import transaction
+from django.utils import timezone
 
-from .models import Cart, Order, OrderItem
+from .models import Cart, Coupon, Order, OrderItem
 
 ADDRESS_FIELDS = [
     "email",
@@ -79,3 +81,61 @@ def place_order(
         )
     cart.items.all().delete()
     return order
+
+
+def find_replacement(
+    coupon: Coupon, cart: Cart, *, now: datetime | None = None
+) -> Coupon | None:
+    """Choose the coupon that takes over from an expired ``coupon`` on ``cart``.
+
+    1. Follow the staff-set ``replaced_by`` chain to the first coupon that
+       is active and not used up by the cart's customer. A chain target is
+       returned even if the cart is below its minimum — staff chose it, and
+       it simply starts out paused. A loop in the chain ends the walk.
+    2. Otherwise, among active public coupons whose minimum the cart meets
+       and that the customer has not used up, pick the one whose savings on
+       this cart are closest, in either direction, to what ``coupon`` would
+       have saved.
+    3. Ties go to the bigger saving, then to the most recently created.
+
+    Returns ``None`` when nothing qualifies; the caller removes the coupon.
+    """
+    now = now or timezone.now()
+    user = cart.user
+
+    visited = {coupon.pk}
+    candidate = coupon.replaced_by
+    while candidate is not None and candidate.pk not in visited:
+        visited.add(candidate.pk)
+        if candidate.is_active(now) and not _is_used_up(candidate, user):
+            return candidate
+        candidate = candidate.replaced_by
+
+    total = cart.total()
+    target = coupon.savings_for(total)
+    matches = [
+        match
+        for match in Coupon.objects.active(now).public().exclude(pk__in=visited)
+        if match.meets_minimum(total) and not _is_used_up(match, user)
+    ]
+    if not matches:
+        return None
+
+    def closeness(match: Coupon) -> tuple:
+        savings = match.savings_for(total)
+        return (
+            abs(savings - target),
+            -savings,
+            -match.created_at.timestamp(),
+            -match.pk,
+        )
+
+    return min(matches, key=closeness)
+
+
+def _is_used_up(coupon: Coupon, user: AbstractBaseUser) -> bool:
+    """Whether a once-per-customer coupon has already been used by ``user``.
+
+    Always ``False`` until ``Order.coupon`` exists (coupons plan, Phase 3).
+    """
+    return False

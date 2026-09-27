@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
 from django.db import models
@@ -157,3 +157,94 @@ class OrderItem(models.Model):
     @property
     def line_total(self):
         return self.unit_price * self.quantity
+
+
+class CouponQuerySet(models.QuerySet):
+    def active(self, now=None):
+        """Coupons running at ``now``: started, and not yet expired."""
+        now = now or timezone.now()
+        return self.filter(starts_at__lte=now, expires_at__gt=now)
+
+    def public(self):
+        """Coupons the store may offer automatically as a replacement."""
+        return self.filter(is_public=True)
+
+
+class Coupon(models.Model):
+    """A discount code, percent or fixed amount, live between two dates.
+
+    Expiry is always computed from the dates, never stored: a coupon is
+    active from ``starts_at`` up to, but not including, ``expires_at``.
+    Codes are stored uppercase so they match case-insensitively.
+    """
+
+    class DiscountType(models.TextChoices):
+        PERCENT = "PERCENT", "Percent off"
+        AMOUNT = "AMOUNT", "Amount off"
+
+    class Status(models.TextChoices):
+        SCHEDULED = "SCHEDULED", "Scheduled"
+        ACTIVE = "ACTIVE", "Active"
+        EXPIRED = "EXPIRED", "Expired"
+
+    code = models.CharField(max_length=30, unique=True)
+    discount_type = models.CharField(max_length=7, choices=DiscountType.choices)
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    starts_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    minimum_order = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    once_per_customer = models.BooleanField(default=False)
+    is_public = models.BooleanField(default=False)
+    replaced_by = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="replaces",
+    )
+    # default (not auto_now_add) so tests and the seed can set it.
+    created_at = models.DateTimeField(default=timezone.now)
+
+    objects = CouponQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-starts_at"]
+
+    def __str__(self):
+        return self.code
+
+    def save(self, *args, **kwargs):
+        self.code = self.code.strip().upper()
+        super().save(*args, **kwargs)
+
+    def is_active(self, now=None):
+        now = now or timezone.now()
+        return self.starts_at <= now < self.expires_at
+
+    def is_expired(self, now=None):
+        now = now or timezone.now()
+        return now >= self.expires_at
+
+    def status(self, now=None):
+        """Scheduled, active, or expired at ``now`` — for the back office."""
+        now = now or timezone.now()
+        if now < self.starts_at:
+            return self.Status.SCHEDULED
+        if now < self.expires_at:
+            return self.Status.ACTIVE
+        return self.Status.EXPIRED
+
+    def meets_minimum(self, total):
+        return self.minimum_order is None or total >= self.minimum_order
+
+    def savings_for(self, total):
+        """What this coupon takes off ``total``, capped so it never goes below zero."""
+        if self.discount_type == self.DiscountType.PERCENT:
+            savings = (total * self.value / 100).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        else:
+            savings = self.value
+        return max(Decimal("0.00"), min(savings, total))
