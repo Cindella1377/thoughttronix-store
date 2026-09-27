@@ -9,6 +9,9 @@ Demo logins (documented in the README):
     admin / admin123        superuser
     employee / employee123  staff, "Junior Thought Curator"
     customer / customer123  a plain customer, with order history and a live cart
+
+The live cart holds the expired THOUGHTS10, so the coupon swap and its
+notice appear the first time 'customer' opens the cart.
 """
 
 import random
@@ -21,7 +24,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
-from orders.models import Cart, Order, OrderItem
+from orders.models import Cart, Coupon, Order, OrderItem
 from products.models import Category, Product, Tag
 
 TAGS = [
@@ -496,9 +499,37 @@ SEED_ADDRESSES = [
 
 CARD_LAST4S = ["4242", "4111", "1881", "0005"]
 
+# Demo coupons, dated relative to the seed run so the demo never goes
+# stale: (code, type, value, starts days from now, expires days from
+# now, minimum order, once per customer, public, replaced by).
+PERCENT, AMOUNT = "PERCENT", "AMOUNT"
+COUPONS = [
+    # The replacement chain: THOUGHTS10 → THOUGHTS15 → THOUGHTS20. The
+    # customer's cart holds THOUGHTS10, so the swap shows on first visit.
+    ("THOUGHTS20", PERCENT, "20", -1, 60, None, False, False, None),
+    ("THOUGHTS15", PERCENT, "15", -60, -1, None, False, False, "THOUGHTS20"),
+    ("THOUGHTS10", PERCENT, "10", -150, -3, None, False, False, "THOUGHTS15"),
+    # Expired with no link: typing it falls back to the closest public coupon.
+    ("SUMMER5", AMOUNT, "5", -120, -30, None, False, False, None),
+    # The public pool the closest-match search draws from.
+    ("FALL10", PERCENT, "10", -21, 45, None, False, True, None),
+    ("SAVE15", AMOUNT, "15", -21, 45, "75", False, True, None),
+    ("WELCOME5", AMOUNT, "5", -180, 180, None, True, True, None),
+    # Never offered automatically.
+    ("STAFFONLY50", PERCENT, "50", -30, 365, None, False, False, None),
+]
+# HOLIDAY20 is scheduled: it starts on the next November 25.
+HOLIDAY_CODE = "HOLIDAY20"
+
+# Roughly one background order in four used a coupon.
+COUPON_ORDER_SHARE = 0.25
+
 
 class Command(BaseCommand):
-    help = "Wipe and rebuild the demo world: catalog, tags, and demo accounts."
+    help = (
+        "Wipe and rebuild the demo world: catalog, tags, demo accounts, "
+        "coupons, and orders."
+    )
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -506,6 +537,7 @@ class Command(BaseCommand):
         tags = self._create_tags()
         self._create_catalog(tags)
         self._create_users()
+        self._create_coupons()
         self._create_customer_cart()
         self._create_orders()
 
@@ -515,6 +547,7 @@ class Command(BaseCommand):
                 f"{Tag.objects.count()} tags, "
                 f"{Product.objects.count()} products, "
                 f"{get_user_model().objects.count()} users, "
+                f"{Coupon.objects.count()} coupons, "
                 f"{Order.objects.count()} orders, "
                 f"and a live cart for 'customer'."
             )
@@ -524,6 +557,7 @@ class Command(BaseCommand):
         """Remove everything the seed owns; the rebuild starts from zero."""
         Order.objects.all().delete()
         Cart.objects.all().delete()
+        Coupon.objects.all().delete()
         Product.objects.all().delete()
         Tag.objects.all().delete()
         Category.objects.all().delete()
@@ -580,11 +614,48 @@ class Command(BaseCommand):
             user.set_unusable_password()
             user.save()
 
+    def _create_coupons(self):
+        """The demo coupons, replacements linked after all exist."""
+        now = timezone.now()
+        coupons = {}
+        for code, kind, value, starts, expires, minimum, once, public, _ in COUPONS:
+            coupons[code] = Coupon.objects.create(
+                code=code,
+                discount_type=kind,
+                value=Decimal(value),
+                starts_at=now + timedelta(days=starts),
+                expires_at=now + timedelta(days=expires),
+                minimum_order=Decimal(minimum) if minimum else None,
+                once_per_customer=once,
+                is_public=public,
+            )
+        for code, *_, replaced_by in COUPONS:
+            if replaced_by:
+                coupons[code].replaced_by = coupons[replaced_by]
+                coupons[code].save()
+
+        local = timezone.localtime(now)
+        holiday = local.replace(month=11, day=25, hour=0, minute=0, second=0)
+        if holiday <= local:
+            holiday = holiday.replace(year=holiday.year + 1)
+        Coupon.objects.create(
+            code=HOLIDAY_CODE,
+            discount_type=PERCENT,
+            value=Decimal("20"),
+            starts_at=holiday,
+            expires_at=holiday + timedelta(days=37),
+            is_public=True,
+        )
+
     def _create_customer_cart(self):
+        """A live cart holding the expired THOUGHTS10, left unrefreshed so
+        the swap notice appears the first time 'customer' views the cart."""
         customer = get_user_model().objects.get(username="customer")
         cart = Cart.for_user(customer)
         for slug, quantity in CUSTOMER_CART:
             cart.items.create(product=Product.objects.get(slug=slug), quantity=quantity)
+        cart.coupon = Coupon.objects.get(code="THOUGHTS10")
+        cart.save()
 
     def _create_orders(self):
         """Order history: 4 visible orders for 'customer', 48 background.
@@ -595,11 +666,15 @@ class Command(BaseCommand):
         cancelled along the way.
         """
         rng = random.Random(2026)
+        # Coupons draw from their own RNG so the orders themselves stay
+        # exactly as they were before coupons existed.
+        coupon_rng = random.Random(10)
         now = timezone.now()
         User = get_user_model()
 
         customer = User.objects.get(username="customer")
-        for days_ago, status, lines in CUSTOMER_ORDERS:
+        welcome = Coupon.objects.get(code="WELCOME5")
+        for index, (days_ago, status, lines) in enumerate(CUSTOMER_ORDERS):
             self._build_order(
                 user=customer,
                 created_at=now - timedelta(days=days_ago, hours=rng.randint(1, 12)),
@@ -609,7 +684,14 @@ class Command(BaseCommand):
                     for slug, quantity in lines
                 ],
                 rng=rng,
+                # Their first order used WELCOME5, so it's spent for them.
+                coupon=welcome if index == 0 else None,
             )
+
+        # Coupons a background customer might have used, never the
+        # staff-only one. Sorted so the RNG's choices are reproducible.
+        usable = list(Coupon.objects.exclude(code="STAFFONLY50").order_by("code"))
+        used_once = set()
 
         background = list(
             User.objects.filter(
@@ -633,28 +715,54 @@ class Command(BaseCommand):
                 status = Order.Status.DELIVERED
             else:
                 status = rng.choice([Order.Status.PLACED, Order.Status.SHIPPED])
+            user = rng.choice(background)
+            created_at = now - timedelta(days=days_ago, hours=rng.randint(1, 23))
+            lines = [
+                (product, rng.randint(1, 2))
+                for product in rng.sample(pool, rng.randint(1, 3))
+            ]
+
+            coupon = None
+            if coupon_rng.random() < COUPON_ORDER_SHARE:
+                subtotal = sum((p.price * q for p, q in lines), Decimal("0.00"))
+                options = [
+                    c
+                    for c in usable
+                    if c.is_active(created_at)
+                    and c.meets_minimum(subtotal)
+                    and (c.pk, user.pk) not in used_once
+                ]
+                if options:
+                    coupon = coupon_rng.choice(options)
+                    if coupon.once_per_customer:
+                        used_once.add((coupon.pk, user.pk))
+
             self._build_order(
-                user=rng.choice(background),
-                created_at=now - timedelta(days=days_ago, hours=rng.randint(1, 23)),
+                user=user,
+                created_at=created_at,
                 status=status,
-                lines=[
-                    (product, rng.randint(1, 2))
-                    for product in rng.sample(pool, rng.randint(1, 3))
-                ],
+                lines=lines,
                 rng=rng,
+                coupon=coupon,
             )
 
-    def _build_order(self, *, user, created_at, status, lines, rng):
-        """One order with denormalized addresses and purchase-time prices."""
+    def _build_order(self, *, user, created_at, status, lines, rng, coupon=None):
+        """One order with denormalized addresses, purchase-time prices, and
+        the coupon's code and discount snapshotted like at checkout."""
         street, city, state, zip_code = rng.choice(SEED_ADDRESSES)
         name = f"{user.first_name} {user.last_name}"
+        subtotal = sum(
+            (product.price * quantity for product, quantity in lines),
+            Decimal("0.00"),
+        )
+        discount = coupon.savings_for(subtotal) if coupon else Decimal("0.00")
         order = Order.objects.create(
             user=user,
             status=status,
-            total=sum(
-                (product.price * quantity for product, quantity in lines),
-                Decimal("0.00"),
-            ),
+            total=subtotal - discount,
+            discount=discount,
+            coupon=coupon,
+            coupon_code=coupon.code if coupon else "",
             email=user.email,
             shipping_name=name,
             shipping_street=street,

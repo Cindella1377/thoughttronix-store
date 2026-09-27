@@ -109,6 +109,8 @@ def place_order(
 
 
 class ChangeReason(enum.Enum):
+    """Why a cart's coupon changed: applied by the customer, or swapped."""
+
     APPLIED = "applied"
     EXPIRED = "expired"
     NOT_STARTED = "not started"

@@ -1,6 +1,6 @@
 # CLAUDE.md — The ThoughtTronix Store
 
-A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built.
+A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes.
 
 ## Commands
 
@@ -21,7 +21,10 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
   employees are `is_staff`, the admin is `is_superuser`. No role field, no Groups.
 - `products/` — catalog (`Category`, `Product`, `Tag`), its back-office CRUD,
   and the `seed` command
-- `orders/` — cart, checkout, orders, and back-office order management
+- `orders/` — cart, checkout, orders, coupons, and back-office order and
+  coupon management. The cart page carries six HTMX interactions: the
+  core's add, quantity, and remove, plus apply coupon, remove coupon, and
+  dismiss the coupon notice.
 - `dashboard/` — the staff analytics dashboard
 - `PROMPTS.md` — the AI-usage log; append entries, never rewrite history
 - `templates/` — project-level templates (`base.html`); app templates live in
@@ -35,9 +38,13 @@ Logic lives in models and managers; cross-model workflows get a service
 module; views stay thin.
 
 Exactly two deliberate deep modules, docstrings and type hints on every
-public function: `orders/services.py` (`place_order`, with its dormant
-`coupon_code` seam) and `dashboard/queries.py` (the dashboard's
-aggregations).
+public function: `orders/services.py` (`place_order`, plus the coupon
+workflow — `apply_coupon`, `refresh_cart_coupon`, and `find_replacement`)
+and `dashboard/queries.py` (the dashboard's aggregations).
+
+Time-dependent code takes an optional `now` (defaulting to
+`timezone.now()`), so tests pass exact moments instead of freezing the
+clock.
 
 Idiomatic Django throughout: class-based views, model methods, custom
 managers/querysets, forms own their validation. Settings read from `.env`

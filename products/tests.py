@@ -8,7 +8,7 @@ from django.db import IntegrityError
 from django.urls import reverse
 from django.utils.html import escape
 
-from orders.models import CartItem, Order, OrderItem
+from orders.models import CartItem, Coupon, Order, OrderItem
 
 from .models import Category, Product, Tag
 
@@ -258,6 +258,33 @@ def test_seed_builds_the_demo_world(db):
     assert statuses == set(Order.Status.values)
 
 
+def test_seed_builds_the_coupon_demo(db):
+    call_command("seed")
+
+    assert Coupon.objects.count() == 9
+    statuses = {c.code: c.status() for c in Coupon.objects.all()}
+    assert statuses["THOUGHTS10"] == Coupon.Status.EXPIRED
+    assert statuses["THOUGHTS20"] == Coupon.Status.ACTIVE
+    assert statuses["HOLIDAY20"] == Coupon.Status.SCHEDULED
+    chain = Coupon.objects.get(code="THOUGHTS10")
+    assert chain.replaced_by.replaced_by.code == "THOUGHTS20"
+
+    # The customer's cart holds the expired code, not yet swapped.
+    customer = get_user_model().objects.get(username="customer")
+    assert customer.cart.coupon.code == "THOUGHTS10"
+    assert customer.cart.coupon_notice == ""
+    assert Coupon.objects.get(code="WELCOME5").is_used_up_by(customer)
+
+    # Some orders used coupons, each snapshotted with total after discount.
+    discounted = Order.objects.exclude(coupon_code="")
+    assert discounted.count() > 5
+    for order in discounted:
+        subtotal = sum(item.line_total for item in order.items.all())
+        assert order.discount > 0
+        assert order.total == subtotal - order.discount
+    assert not discounted.filter(coupon_code="STAFFONLY50").exists()
+
+
 def test_seed_is_idempotent(db):
     call_command("seed")
     first = (
@@ -266,6 +293,7 @@ def test_seed_is_idempotent(db):
         Product.objects.count(),
         get_user_model().objects.count(),
         CartItem.objects.count(),
+        Coupon.objects.count(),
         Order.objects.count(),
         OrderItem.objects.count(),
     )
@@ -277,6 +305,7 @@ def test_seed_is_idempotent(db):
         Product.objects.count(),
         get_user_model().objects.count(),
         CartItem.objects.count(),
+        Coupon.objects.count(),
         Order.objects.count(),
         OrderItem.objects.count(),
     )
