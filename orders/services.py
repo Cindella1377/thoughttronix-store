@@ -3,9 +3,16 @@
 The interface is the product: one function that turns a cart and a
 validated checkout into an order, all-or-nothing. Callers never touch
 ``Order`` construction directly.
+
+Coupons live here too, because keeping a cart's coupon valid spans the
+cart, the coupons, and the customer's past orders: ``apply_coupon`` and
+``refresh_cart_coupon`` swap an expired coupon for its replacement, chosen
+by ``find_replacement``, and leave a notice on the cart saying why.
 """
 
+import enum
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -81,6 +88,105 @@ def place_order(
         )
     cart.items.all().delete()
     return order
+
+
+class ChangeReason(enum.Enum):
+    APPLIED = "applied"
+    EXPIRED = "expired"
+    NOT_STARTED = "not started"
+    USED_UP = "used up"
+
+
+@dataclass(frozen=True)
+class CouponChange:
+    """What happened to a cart's coupon: ``old`` gave way to ``new``.
+
+    ``new`` is ``None`` when the coupon was removed with no replacement.
+    """
+
+    old: Coupon | None
+    new: Coupon | None
+    reason: ChangeReason
+
+
+def apply_coupon(cart: Cart, code: str, *, now: datetime | None = None) -> CouponChange:
+    """Put the coupon with ``code`` on ``cart``, replacing any coupon there.
+
+    Codes match case-insensitively. A code that has expired, or that the
+    customer has used up, goes through the same swap as a coupon that
+    expires in the cart — see ``refresh_cart_coupon``.
+
+    Raises ``ValueError`` for an unknown code or one that has not started;
+    ``CouponApplyForm`` rejects both first, so customers see a form error.
+    """
+    now = now or timezone.now()
+    coupon = Coupon.objects.filter(code=Coupon.normalize_code(code)).first()
+    if coupon is None:
+        raise ValueError(f"No coupon has the code {code!r}.")
+    if now < coupon.starts_at:
+        raise ValueError(f"{coupon.code} has not started yet.")
+
+    old = cart.coupon
+    cart.coupon = coupon
+    cart.coupon_notice = ""
+    cart.save(update_fields=["coupon", "coupon_notice"])
+    change = refresh_cart_coupon(cart, now=now)
+    return change or CouponChange(old=old, new=coupon, reason=ChangeReason.APPLIED)
+
+
+def refresh_cart_coupon(
+    cart: Cart, *, now: datetime | None = None
+) -> CouponChange | None:
+    """Keep ``cart``'s coupon valid, swapping it out if it no longer is.
+
+    A coupon that has expired, is not currently running, or has been used
+    up by the customer is replaced via ``find_replacement`` — or removed if
+    nothing qualifies — and the cart's notice explains what happened. A
+    coupon that is merely below its minimum is left alone: it is paused,
+    not invalid (see ``Cart.discount``).
+
+    Returns the change, or ``None`` if the coupon was fine as it was.
+    """
+    now = now or timezone.now()
+    coupon = cart.coupon
+    if coupon is None:
+        return None
+    if coupon.is_expired(now):
+        reason = ChangeReason.EXPIRED
+    elif not coupon.is_active(now):
+        reason = ChangeReason.NOT_STARTED
+    elif _is_used_up(coupon, cart.user):
+        reason = ChangeReason.USED_UP
+    else:
+        return None
+
+    change = CouponChange(
+        old=coupon, new=find_replacement(coupon, cart, now=now), reason=reason
+    )
+    cart.coupon = change.new
+    cart.coupon_notice = _notice_for(change, cart)
+    cart.save(update_fields=["coupon", "coupon_notice"])
+    return change
+
+
+def _notice_for(change: CouponChange, cart: Cart) -> str:
+    """The customer-facing explanation of a swap or removal."""
+    old = change.old
+    if change.reason is ChangeReason.EXPIRED:
+        expired_on = timezone.localtime(old.expires_at)
+        why = f"{old.code} expired on {expired_on:%b} {expired_on.day}"
+    elif change.reason is ChangeReason.USED_UP:
+        why = f"You've already used {old.code}, and it's one per customer"
+    else:
+        why = f"{old.code} isn't running right now"
+
+    if change.new is None:
+        return f"{why}, and no replacement is available right now."
+    notice = f"{why}, so we applied {change.new.code} instead"
+    discount = cart.discount()
+    if discount:
+        return f"{notice}, which saves you ${discount:,.2f} on this cart."
+    return f"{notice}."
 
 
 def find_replacement(

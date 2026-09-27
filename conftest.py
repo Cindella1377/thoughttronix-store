@@ -110,5 +110,30 @@ def make_coupon(db):
 
 
 @pytest.fixture
+def expired(make_coupon, now):
+    """Build a coupon that expired a day before ``COUPON_NOW``."""
+
+    def make(code, value="10", **fields):
+        fields.setdefault("starts_at", now - datetime.timedelta(days=60))
+        fields.setdefault("expires_at", now - datetime.timedelta(days=1))
+        return make_coupon(code, value, **fields)
+
+    return make
+
+
+@pytest.fixture
 def coupon(make_coupon):
     return make_coupon("FALL10", is_public=True)
+
+
+@pytest.fixture
+def cart_80(cart, category):
+    """A cart totalling exactly $80.00, so coupon savings are easy to read."""
+    product = Product.objects.create(
+        name="MindSync Charger",
+        slug="mindsync-charger",
+        price=Decimal("40.00"),
+        category=category,
+    )
+    CartItem.objects.create(cart=cart, product=product, quantity=2)
+    return cart

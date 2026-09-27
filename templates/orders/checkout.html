@@ -73,9 +73,19 @@
             {% endfor %}
           </ul>
           <div class="divider my-2"></div>
+          {% if cart.discount %}
+            <p class="flex justify-between text-sm">
+              <span>Subtotal</span>
+              <span>${{ cart.total|intcomma }}</span>
+            </p>
+            <p class="flex justify-between text-sm text-success">
+              <span>Discount ({{ cart.coupon.code }})</span>
+              <span>−${{ cart.discount|intcomma }}</span>
+            </p>
+          {% endif %}
           <p class="flex justify-between font-semibold">
             <span>Total</span>
-            <span class="text-primary">${{ cart.total|intcomma }}</span>
+            <span class="text-primary">${{ cart.grand_total|intcomma }}</span>
           </p>
           <a href="{% url 'orders:cart' %}" class="link link-hover text-sm opacity-70">
             Edit cart

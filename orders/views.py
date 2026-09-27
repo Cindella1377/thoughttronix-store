@@ -1,10 +1,13 @@
 """Cart and checkout views — thin per the architecture convention.
 
-The three HTMX interactions of the core live here: add-to-cart, quantity
-change, and line removal. Each renders a partial (never ``base.html``);
-the responses carry the navbar badge as an out-of-band swap via the
-``oob_badge`` context flag. Checkout is conventional full-page work:
-validate the form, hand everything to ``place_order``.
+The core's three HTMX interactions live here — add-to-cart, quantity
+change, and line removal — plus the coupons feature's three: apply
+coupon, remove coupon, and dismiss the coupon notice. Each renders a
+partial (never ``base.html``); line changes carry the navbar badge as an
+out-of-band swap via the ``oob_badge`` context flag. Every render of the
+cart refreshes its coupon first, so an expired one is swapped before the
+customer sees it. Checkout is conventional full-page work: validate the
+form, hand everything to ``place_order``.
 """
 
 from django.contrib import messages
@@ -17,9 +20,23 @@ from django.views.generic import DetailView, FormView, ListView, TemplateView
 from accounts.mixins import StaffRequiredMixin
 from products.models import Product
 
-from .forms import CheckoutForm, OrderStatusForm
+from .forms import CheckoutForm, CouponApplyForm, OrderStatusForm
 from .models import Cart, CartItem, Order
-from .services import place_order
+from .services import apply_coupon, place_order, refresh_cart_coupon
+
+
+def render_cart_contents(request, cart, *, coupon_form=None, oob_badge=False):
+    """Render the cart partial, refreshing the cart's coupon first."""
+    refresh_cart_coupon(cart)
+    return render(
+        request,
+        "orders/partials/_cart_contents.html",
+        {
+            "cart": cart,
+            "coupon_form": coupon_form or CouponApplyForm(),
+            "oob_badge": oob_badge,
+        },
+    )
 
 
 class CartView(LoginRequiredMixin, TemplateView):
@@ -29,7 +46,10 @@ class CartView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["cart"] = Cart.for_user(self.request.user)
+        cart = Cart.for_user(self.request.user)
+        refresh_cart_coupon(cart)
+        context["cart"] = cart
+        context["coupon_form"] = CouponApplyForm()
         return context
 
 
@@ -60,11 +80,7 @@ class CartItemActionView(LoginRequiredMixin, View):
     def post(self, request, pk):
         item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
         self.act(item)
-        return render(
-            request,
-            "orders/partials/_cart_contents.html",
-            {"cart": item.cart, "oob_badge": True},
-        )
+        return render_cart_contents(request, item.cart, oob_badge=True)
 
     def act(self, item):
         raise NotImplementedError
@@ -83,6 +99,39 @@ class DecrementCartItemView(CartItemActionView):
 class RemoveCartItemView(CartItemActionView):
     def act(self, item):
         item.delete()
+
+
+class ApplyCouponView(LoginRequiredMixin, View):
+    """HTMX: apply a code; an expired one is swapped, with a notice.
+
+    An unknown or not-yet-started code re-renders with the form's error.
+    """
+
+    def post(self, request):
+        cart = Cart.for_user(request.user)
+        form = CouponApplyForm(request.POST)
+        if not form.is_valid():
+            return render_cart_contents(request, cart, coupon_form=form)
+        apply_coupon(cart, form.cleaned_data["code"])
+        return render_cart_contents(request, cart)
+
+
+class RemoveCouponView(LoginRequiredMixin, View):
+    """HTMX: take the coupon off the cart."""
+
+    def post(self, request):
+        cart = Cart.for_user(request.user)
+        cart.remove_coupon()
+        return render_cart_contents(request, cart)
+
+
+class DismissCouponNoticeView(LoginRequiredMixin, View):
+    """HTMX: clear the notice explaining the last coupon swap."""
+
+    def post(self, request):
+        cart = Cart.for_user(request.user)
+        cart.dismiss_coupon_notice()
+        return render_cart_contents(request, cart)
 
 
 class CheckoutView(LoginRequiredMixin, FormView):
@@ -118,7 +167,9 @@ class CheckoutView(LoginRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["cart"] = Cart.for_user(self.request.user)
+        cart = Cart.for_user(self.request.user)
+        refresh_cart_coupon(cart)
+        context["cart"] = cart
         return context
 
     def form_valid(self, form):

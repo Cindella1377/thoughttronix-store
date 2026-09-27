@@ -10,36 +10,10 @@ from decimal import Decimal
 
 import pytest
 
-from products.models import Product
-
-from .models import CartItem, Coupon, Order
+from .models import Coupon, Order
 from .services import find_replacement
 
 AMOUNT = Coupon.DiscountType.AMOUNT
-
-
-@pytest.fixture
-def cart_80(cart, category):
-    product = Product.objects.create(
-        name="MindSync Charger",
-        slug="mindsync-charger",
-        price=Decimal("40.00"),
-        category=category,
-    )
-    CartItem.objects.create(cart=cart, product=product, quantity=2)
-    return cart
-
-
-@pytest.fixture
-def expired(make_coupon, now):
-    """Build a coupon that expired a day before ``now``."""
-
-    def make(code, value="10", **fields):
-        fields.setdefault("starts_at", now - datetime.timedelta(days=60))
-        fields.setdefault("expires_at", now - datetime.timedelta(days=1))
-        return make_coupon(code, value, **fields)
-
-    return make
 
 
 @pytest.fixture

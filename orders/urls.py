@@ -22,6 +22,17 @@ urlpatterns = [
         views.RemoveCartItemView.as_view(),
         name="remove",
     ),
+    path("cart/coupon/", views.ApplyCouponView.as_view(), name="apply_coupon"),
+    path(
+        "cart/coupon/remove/",
+        views.RemoveCouponView.as_view(),
+        name="remove_coupon",
+    ),
+    path(
+        "cart/coupon/notice/dismiss/",
+        views.DismissCouponNoticeView.as_view(),
+        name="dismiss_coupon_notice",
+    ),
     path("checkout/", views.CheckoutView.as_view(), name="checkout"),
     path("orders/", views.OrderHistoryView.as_view(), name="history"),
     path("orders/<int:pk>/", views.OrderDetailView.as_view(), name="detail"),

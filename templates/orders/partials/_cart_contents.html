@@ -1,6 +1,15 @@
 {% load humanize %}
-{# The cart's line items and summary — swapped whole into #cart-contents #}
-{# by the quantity and removal endpoints, with the navbar badge OOB. #}
+{# The cart's line items, coupon, and summary — swapped whole into #}
+{# #cart-contents by the line and coupon endpoints; line changes also #}
+{# carry the navbar badge OOB. #}
+{% if cart.coupon_notice %}
+  <div class="alert alert-info mb-6" role="status">
+    <span>{{ cart.coupon_notice }}</span>
+    <button class="btn btn-ghost btn-sm"
+            hx-post="{% url 'orders:dismiss_coupon_notice' %}"
+            hx-target="#cart-contents">Got it</button>
+  </div>
+{% endif %}
 {% if cart.lines %}
   <div class="overflow-x-auto rounded-box bg-base-100 shadow-md">
     <table class="table">
@@ -53,11 +62,48 @@
     </table>
   </div>
 
-  <div class="mt-6 flex flex-wrap items-center justify-end gap-6">
-    <p class="text-xl font-semibold">
-      Total: <span class="text-primary">${{ cart.total|intcomma }}</span>
-    </p>
-    <a href="{% url 'orders:checkout' %}" class="btn btn-primary">Checkout</a>
+  <div class="mt-6 grid gap-6 md:grid-cols-2">
+    <section class="card bg-base-100 shadow-md">
+      <div class="card-body gap-4">
+        <h2 class="card-title text-lg">Coupon</h2>
+        {% if cart.coupon %}
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p>
+              <span class="badge badge-primary font-mono">{{ cart.coupon.code }}</span>
+              <span class="ml-2 text-sm opacity-70">{{ cart.coupon.summary }}</span>
+            </p>
+            <button class="btn btn-ghost btn-sm text-error"
+                    hx-post="{% url 'orders:remove_coupon' %}"
+                    hx-target="#cart-contents">Remove</button>
+          </div>
+          {% if cart.coupon_shortfall %}
+            <p class="text-sm text-warning">
+              Add ${{ cart.coupon_shortfall|intcomma }} more to use {{ cart.coupon.code }}.
+            </p>
+          {% endif %}
+        {% endif %}
+        <form hx-post="{% url 'orders:apply_coupon' %}" hx-target="#cart-contents">
+          <div class="join w-full">
+            {{ coupon_form.code }}
+            <button type="submit" class="btn join-item">Apply</button>
+          </div>
+          {% for error in coupon_form.code.errors %}
+            <p class="mt-1 text-sm text-error">{{ error }}</p>
+          {% endfor %}
+        </form>
+      </div>
+    </section>
+
+    <div class="flex flex-col items-end justify-end gap-2">
+      {% if cart.discount %}
+        <p class="opacity-70">Subtotal: ${{ cart.total|intcomma }}</p>
+        <p class="text-success">Discount ({{ cart.coupon.code }}): −${{ cart.discount|intcomma }}</p>
+      {% endif %}
+      <p class="text-xl font-semibold">
+        Total: <span class="text-primary">${{ cart.grand_total|intcomma }}</span>
+      </p>
+      <a href="{% url 'orders:checkout' %}" class="btn btn-primary mt-2">Checkout</a>
+    </div>
   </div>
 {% else %}
   <div class="py-16 text-center">

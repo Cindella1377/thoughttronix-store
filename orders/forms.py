@@ -10,7 +10,7 @@ and no ``clean()`` — none of its current rules need imperative validation.
 from django import forms
 from django.core.validators import RegexValidator
 
-from .models import Order
+from .models import Coupon, Order
 from .validators import validate_card_number, validate_expiry
 
 US_STATES = [
@@ -127,6 +127,31 @@ class CheckoutForm(forms.Form):
 
     def card_fields(self):
         return [self[name] for name in self.fields if name.startswith("card_")]
+
+
+class CouponApplyForm(forms.Form):
+    """The cart page's coupon box.
+
+    Rejects only codes that don't exist or haven't started. An expired or
+    used-up code is valid here on purpose: ``apply_coupon`` swaps it.
+    """
+
+    code = forms.CharField(
+        label="Coupon code",
+        max_length=30,
+        widget=forms.TextInput(
+            attrs={"class": "input join-item w-full", "placeholder": "Coupon code"}
+        ),
+    )
+
+    def clean_code(self):
+        code = Coupon.normalize_code(self.cleaned_data["code"])
+        coupon = Coupon.objects.filter(code=code).first()
+        if coupon is None:
+            raise forms.ValidationError("We don't recognize that code.")
+        if coupon.status() == Coupon.Status.SCHEDULED:
+            raise forms.ValidationError(f"{code} isn't active yet — check back soon.")
+        return code
 
 
 class OrderStatusForm(forms.ModelForm):

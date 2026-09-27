@@ -15,6 +15,15 @@ class Cart(models.Model):
         on_delete=models.CASCADE,
         related_name="cart",
     )
+    coupon = models.ForeignKey(
+        "Coupon",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="carts",
+    )
+    # Why the coupon last changed on its own — shown until dismissed.
+    coupon_notice = models.TextField(blank=True)
 
     def __str__(self):
         return f"Cart for {self.user.username}"
@@ -43,6 +52,36 @@ class Cart(models.Model):
     def item_count(self):
         """Total units across all lines — the navbar badge number."""
         return self.items.aggregate(count=models.Sum("quantity"))["count"] or 0
+
+    # Coupon pricing assumes the coupon has been refreshed
+    # (``orders.services.refresh_cart_coupon``); these methods never swap.
+
+    def discount(self):
+        """The coupon's savings, or zero if there is none or it is paused."""
+        if self.coupon is None:
+            return Decimal("0.00")
+        total = self.total()
+        if not self.coupon.meets_minimum(total):
+            return Decimal("0.00")
+        return self.coupon.savings_for(total)
+
+    def grand_total(self):
+        return self.total() - self.discount()
+
+    def coupon_shortfall(self):
+        """How much more the cart needs to reach its coupon's minimum."""
+        if self.coupon is None or self.coupon.minimum_order is None:
+            return Decimal("0.00")
+        return max(Decimal("0.00"), self.coupon.minimum_order - self.total())
+
+    def remove_coupon(self):
+        self.coupon = None
+        self.coupon_notice = ""
+        self.save(update_fields=["coupon", "coupon_notice"])
+
+    def dismiss_coupon_notice(self):
+        self.coupon_notice = ""
+        self.save(update_fields=["coupon_notice"])
 
 
 class CartItem(models.Model):
@@ -216,8 +255,13 @@ class Coupon(models.Model):
         return self.code
 
     def save(self, *args, **kwargs):
-        self.code = self.code.strip().upper()
+        self.code = self.normalize_code(self.code)
         super().save(*args, **kwargs)
+
+    @staticmethod
+    def normalize_code(code):
+        """Codes match case-insensitively: stored and looked up uppercase."""
+        return code.strip().upper()
 
     def is_active(self, now=None):
         now = now or timezone.now()
@@ -235,6 +279,13 @@ class Coupon(models.Model):
         if now < self.expires_at:
             return self.Status.ACTIVE
         return self.Status.EXPIRED
+
+    @property
+    def summary(self):
+        """The discount in words: ``10% off`` or ``$5.00 off``."""
+        if self.discount_type == self.DiscountType.PERCENT:
+            return f"{self.value.normalize():f}% off"
+        return f"${self.value:,.2f} off"
 
     def meets_minimum(self, total):
         return self.minimum_order is None or total >= self.minimum_order
