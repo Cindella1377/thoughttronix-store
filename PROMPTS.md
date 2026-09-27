@@ -28,6 +28,62 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-09-27 — Viewed the coupons in the dev server; showed a swapped-out coupon faded beside its replacement
+
+*Continues the coupon session logged in the entry below; these are the
+prompts given after that entry was written.*
+
+### Prompts
+1. commit and push it
+2. run the dev server so I can see the coupons
+3. on customer user - the code summer5 is working i thought it was expired
+4. yes can we make a change to show the swap coupon as faded with the expired so it doesn't get confusing when it isn't the same coupon in the cart part
+5. yes perfect!
+6. push it
+7. write a session log for prompts.md
+
+### Summary
+- **Outcome:** The previous session log was committed and pushed
+  (`e996d68`). A dev server for this project was already running on port
+  8000, most likely from the other terminal, so the agent used it
+  instead of starting a second one. In the browser, SUMMER5 looked like it
+  was working even though it had expired. Checking the database showed the
+  swap working as designed: SUMMER5 had been replaced with SAVE15, whose
+  $15.00 saving was closest to SUMMER5's $5 among the public coupons
+  (WELCOME5 was excluded because `customer` had already used it). The
+  coupon line showed only SAVE15, though, which read as SUMMER5 being
+  accepted. The fix: the cart now records the swapped-out coupon and why
+  (`replaced_coupon` and `replaced_coupon_status`, migration `0006`) and
+  shows it struck through and faded with an arrow to the replacement
+  (`~~SUMMER5~~ Expired → SAVE15`). The faded code stays after the notice
+  is dismissed and clears on applying another code, removing the coupon,
+  or checking out. The coupon PRD was updated to match. The suite went
+  from 277 to 279 tests, all passing. It was committed (`08946e7`) and
+  pushed.
+- **Deviations:** Prompt 3 reported what looked like a bug. The agent
+  explained it was the swap chosen during grilling (question 11, "swap it
+  the same way") and offered two options: make the swap easier to see, or
+  reject typed-in expired codes (question 11's option B). Prompt 4 chose
+  making the swap easier to see, in its own form: the faded original
+  code. The agent decided some details itself and stated them: the faded
+  code stays after the notice is dismissed; with no replacement, it shows
+  on its own; and it has a reason label ("Expired", "Already used", "Not
+  running").
+- **Sideways:** The first version of the change worked out the reason
+  label from today's date when the page was shown. The agent noticed this
+  could disagree with the actual reason for the swap, such as an
+  "Already used" coupon later expiring, and switched to storing the label
+  when the swap happens, before running any tests. Ruff flagged the import
+  spacing above the new `COUPON_FIELDS` constant; `ruff check --fix`
+  resolved it. `tailwind build` reported "up to date" even though the new
+  `line-through` and `sr-only` classes were missing from the compiled CSS;
+  a check of the stylesheet caught this, and `tailwind build --force`
+  fixed it. The customer's cart had been swapped before the new fields
+  existed, so it didn't show the faded code until SUMMER5 was entered
+  again. The new layout was verified through the HTML in tests, not by the
+  agent viewing it in a browser. In prompt 5 the user approved the change
+  after reading the agent's summary of it.
+
 ## 2026-09-27 — Fixed the grill-me skill, designed coupon codes by grilling, and built them in five phases
 
 ### Prompts
