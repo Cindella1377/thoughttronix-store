@@ -20,7 +20,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Cart, Coupon, Order, OrderItem
+from .models import COUPON_FIELDS, Cart, Coupon, Order, OrderItem
 
 ADDRESS_FIELDS = [
     "email",
@@ -117,6 +117,14 @@ class ChangeReason(enum.Enum):
     USED_UP = "used up"
 
 
+# The short label the cart page shows beside a swapped-out coupon.
+REPLACED_STATUS = {
+    ChangeReason.EXPIRED: "Expired",
+    ChangeReason.NOT_STARTED: "Not running",
+    ChangeReason.USED_UP: "Already used",
+}
+
+
 @dataclass(frozen=True)
 class CouponChange:
     """What happened to a cart's coupon: ``old`` gave way to ``new``.
@@ -149,7 +157,9 @@ def apply_coupon(cart: Cart, code: str, *, now: datetime | None = None) -> Coupo
     old = cart.coupon
     cart.coupon = coupon
     cart.coupon_notice = ""
-    cart.save(update_fields=["coupon", "coupon_notice"])
+    cart.replaced_coupon = None
+    cart.replaced_coupon_status = ""
+    cart.save(update_fields=COUPON_FIELDS)
     change = refresh_cart_coupon(cart, now=now)
     return change or CouponChange(old=old, new=coupon, reason=ChangeReason.APPLIED)
 
@@ -161,9 +171,11 @@ def refresh_cart_coupon(
 
     A coupon that has expired, is not currently running, or has been used
     up by the customer is replaced via ``find_replacement`` — or removed if
-    nothing qualifies — and the cart's notice explains what happened. A
-    coupon that is merely below its minimum is left alone: it is paused,
-    not invalid (see ``Cart.discount``).
+    nothing qualifies. The cart's notice explains what happened, and the
+    cart remembers the swapped-out coupon and why, so the cart page can
+    show it faded beside its replacement. A coupon that is merely below
+    its minimum is left alone: it is paused, not invalid (see
+    ``Cart.discount``).
 
     Returns the change, or ``None`` if the coupon was fine as it was.
     """
@@ -185,7 +197,9 @@ def refresh_cart_coupon(
     )
     cart.coupon = change.new
     cart.coupon_notice = _notice_for(change, cart)
-    cart.save(update_fields=["coupon", "coupon_notice"])
+    cart.replaced_coupon = coupon
+    cart.replaced_coupon_status = REPLACED_STATUS[reason]
+    cart.save(update_fields=COUPON_FIELDS)
     return change
 
 

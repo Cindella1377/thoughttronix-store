@@ -6,6 +6,9 @@ from django.utils import timezone
 
 from products.models import Product
 
+# Every cart field that changes when its coupon does.
+COUPON_FIELDS = ["coupon", "coupon_notice", "replaced_coupon", "replaced_coupon_status"]
+
 
 class Cart(models.Model):
     """A customer's cart — one per user, created lazily on first touch."""
@@ -24,6 +27,17 @@ class Cart(models.Model):
     )
     # Why the coupon last changed on its own — shown until dismissed.
     coupon_notice = models.TextField(blank=True)
+    # The coupon the store swapped out, shown faded beside its replacement
+    # until the customer changes the coupon themselves or checks out.
+    replaced_coupon = models.ForeignKey(
+        "Coupon",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    # Why it was swapped out, as a short label: "Expired", "Already used".
+    replaced_coupon_status = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
         return f"Cart for {self.user.username}"
@@ -77,7 +91,9 @@ class Cart(models.Model):
     def remove_coupon(self):
         self.coupon = None
         self.coupon_notice = ""
-        self.save(update_fields=["coupon", "coupon_notice"])
+        self.replaced_coupon = None
+        self.replaced_coupon_status = ""
+        self.save(update_fields=COUPON_FIELDS)
 
     def dismiss_coupon_notice(self):
         self.coupon_notice = ""

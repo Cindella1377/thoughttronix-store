@@ -66,11 +66,23 @@
     <section class="card bg-base-100 shadow-md">
       <div class="card-body gap-4">
         <h2 class="card-title text-lg">Coupon</h2>
-        {% if cart.coupon %}
+        {% if cart.coupon or cart.replaced_coupon %}
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p>
-              <span class="badge badge-primary font-mono">{{ cart.coupon.code }}</span>
-              <span class="ml-2 text-sm opacity-70">{{ cart.coupon.summary }}</span>
+            <p class="flex flex-wrap items-center gap-2">
+              {# A coupon the store swapped out stays visible, faded, so the #}
+              {# customer can see their code was replaced rather than lost. #}
+              {% if cart.replaced_coupon %}
+                <span class="badge badge-ghost font-mono line-through opacity-50">{{ cart.replaced_coupon.code }}</span>
+                <span class="text-xs opacity-50">{{ cart.replaced_coupon_status }}</span>
+                {% if cart.coupon %}
+                  <span class="opacity-50" aria-hidden="true">→</span>
+                  <span class="sr-only">replaced by</span>
+                {% endif %}
+              {% endif %}
+              {% if cart.coupon %}
+                <span class="badge badge-primary font-mono">{{ cart.coupon.code }}</span>
+                <span class="text-sm opacity-70">{{ cart.coupon.summary }}</span>
+              {% endif %}
             </p>
             <button class="btn btn-ghost btn-sm text-error"
                     hx-post="{% url 'orders:remove_coupon' %}"

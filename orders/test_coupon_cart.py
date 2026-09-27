@@ -64,13 +64,17 @@ def test_a_fixed_discount_never_makes_the_total_negative(cart_80, make_coupon):
     assert cart_80.grand_total() == Decimal("0.00")
 
 
-def test_remove_coupon_clears_coupon_and_notice(cart_80, coupon):
+def test_remove_coupon_clears_coupon_notice_and_replaced(cart_80, coupon, expired):
     cart_80.coupon_notice = "Something changed."
+    cart_80.replaced_coupon = expired("THOUGHTS10")
+    cart_80.replaced_coupon_status = "Expired"
     put_on(cart_80, coupon)
     cart_80.remove_coupon()
     cart_80.refresh_from_db()
     assert cart_80.coupon is None
     assert cart_80.coupon_notice == ""
+    assert cart_80.replaced_coupon is None
+    assert cart_80.replaced_coupon_status == ""
 
 
 def test_dismiss_notice_keeps_the_coupon(cart_80, coupon):
@@ -129,6 +133,8 @@ def test_refresh_swaps_an_expired_coupon_and_explains(
         "THOUGHTS10 expired on Sep 30, so we applied SAVE7 instead, "
         "which saves you $7.50 on this cart."
     )
+    assert cart_80.replaced_coupon == thoughts10
+    assert cart_80.replaced_coupon_status == "Expired"
 
 
 def test_refresh_follows_the_staff_chain(cart_80, expired, make_coupon, now):
@@ -149,7 +155,8 @@ def test_a_paused_replacement_notice_omits_savings(cart_80, expired, make_coupon
 
 
 def test_refresh_removes_when_nothing_qualifies(cart_80, expired, now):
-    put_on(cart_80, expired("THOUGHTS10"))
+    thoughts10 = expired("THOUGHTS10")
+    put_on(cart_80, thoughts10)
 
     change = refresh_cart_coupon(cart_80, now=now)
 
@@ -157,6 +164,9 @@ def test_refresh_removes_when_nothing_qualifies(cart_80, expired, now):
     cart_80.refresh_from_db()
     assert cart_80.coupon is None
     assert cart_80.coupon_notice.endswith("and no replacement is available right now.")
+    # Still shown faded, so the customer sees what happened to their code.
+    assert cart_80.replaced_coupon == thoughts10
+    assert cart_80.replaced_coupon_status == "Expired"
 
 
 def test_refresh_expires_exactly_at_expires_at(cart_80, make_coupon, now):
@@ -175,6 +185,7 @@ def test_refresh_swaps_a_coupon_that_is_not_running(cart_80, make_coupon, now):
     assert cart_80.coupon_notice == (
         "LATER isn't running right now, and no replacement is available right now."
     )
+    assert cart_80.replaced_coupon_status == "Not running"
 
 
 # apply_coupon
@@ -193,12 +204,14 @@ def test_apply_matches_case_insensitively(cart_80, coupon, now):
     assert apply_coupon(cart_80, "  fall10 ", now=now).new == coupon
 
 
-def test_apply_replaces_the_current_coupon_and_clears_the_notice(
-    cart_80, coupon, make_coupon, now
+def test_apply_replaces_the_current_coupon_and_clears_the_swap(
+    cart_80, coupon, expired, make_coupon, now
 ):
     save5 = make_coupon("SAVE5", "5", discount_type=AMOUNT)
     put_on(cart_80, coupon)
     cart_80.coupon_notice = "An old notice."
+    cart_80.replaced_coupon = expired("THOUGHTS10")
+    cart_80.replaced_coupon_status = "Expired"
     cart_80.save()
 
     change = apply_coupon(cart_80, "SAVE5", now=now)
@@ -208,6 +221,8 @@ def test_apply_replaces_the_current_coupon_and_clears_the_notice(
     cart_80.refresh_from_db()
     assert cart_80.coupon == save5
     assert cart_80.coupon_notice == ""
+    assert cart_80.replaced_coupon is None
+    assert cart_80.replaced_coupon_status == ""
 
 
 def test_apply_swaps_a_code_that_has_already_expired(cart_80, expired, coupon, now):
@@ -219,6 +234,7 @@ def test_apply_swaps_a_code_that_has_already_expired(cart_80, expired, coupon, n
     assert change.new == coupon
     assert change.reason is ChangeReason.EXPIRED
     assert cart_80.coupon_notice.startswith("THOUGHTS10 expired on")
+    assert cart_80.replaced_coupon == thoughts10
 
 
 def test_apply_rejects_an_unknown_code(cart_80, now):

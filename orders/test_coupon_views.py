@@ -139,6 +139,41 @@ def test_cart_page_swaps_a_coupon_that_expired_in_the_cart(
     assert b"Got it" in response.content
 
 
+def test_the_swapped_out_code_shows_faded_beside_its_replacement(
+    signed_in, cart_80, lapsed, live
+):
+    lapsed("SUMMER5", "5", discount_type=AMOUNT)
+    live("SAVE15", "15", discount_type=AMOUNT, is_public=True)
+
+    response = signed_in.post(reverse("orders:apply_coupon"), {"code": "summer5"})
+    content = response.content.decode()
+
+    faded = content.index('line-through opacity-50">SUMMER5</span>')
+    status = content.index(">Expired</span>", faded)
+    arrow = content.index("replaced by", status)
+    assert content.index(">SAVE15</span>", arrow)
+
+    # Dismissing the notice keeps the faded code; it explains the coupon line.
+    response = signed_in.post(reverse("orders:dismiss_coupon_notice"))
+    assert b"SUMMER5 expired on" not in response.content
+    assert b">SUMMER5</span>" in response.content
+
+
+def test_a_code_removed_with_no_replacement_shows_faded_alone(
+    signed_in, cart_80, lapsed
+):
+    lapsed("SUMMER5", "5", discount_type=AMOUNT)
+
+    response = signed_in.post(reverse("orders:apply_coupon"), {"code": "SUMMER5"})
+
+    assert b'line-through opacity-50">SUMMER5</span>' in response.content
+    assert b"replaced by" not in response.content
+
+    # Remove clears the faded code too.
+    response = signed_in.post(reverse("orders:remove_coupon"))
+    assert b">SUMMER5</span>" not in response.content
+
+
 def test_remove_coupon(signed_in, cart_80, live):
     cart_80.coupon = live("FALL10")
     cart_80.save()

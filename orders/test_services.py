@@ -196,10 +196,12 @@ def test_a_paused_coupon_records_no_discount(cart_80, make_coupon, checkout_data
 
 
 def test_placing_an_order_clears_the_cart_coupon_and_notice(
-    cart_80, coupon, checkout_data, now
+    cart_80, coupon, expired, checkout_data, now
 ):
     cart_80.coupon = coupon
     cart_80.coupon_notice = "THOUGHTS10 expired, so we applied FALL10 instead."
+    cart_80.replaced_coupon = expired("THOUGHTS10")
+    cart_80.replaced_coupon_status = "Expired"
     cart_80.save()
 
     place_order(cart_80, cart_80.user, checkout_data, now=now)
@@ -207,6 +209,7 @@ def test_placing_an_order_clears_the_cart_coupon_and_notice(
     cart_80.refresh_from_db()
     assert cart_80.coupon is None
     assert cart_80.coupon_notice == ""
+    assert cart_80.replaced_coupon is None
 
 
 def test_the_coupon_code_seam_applies_the_code(cart_80, coupon, checkout_data, now):
@@ -248,3 +251,4 @@ def test_a_once_per_customer_coupon_is_swapped_on_second_use(
         "You've already used WELCOME5 (one per customer), "
         "and no replacement is available right now."
     )
+    assert cart_80.replaced_coupon_status == "Already used"
