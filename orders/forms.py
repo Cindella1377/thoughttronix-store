@@ -7,8 +7,12 @@ validate (``required``, ``max_length``, ``ChoiceField``), and the
 and no ``clean()`` — none of its current rules need imperative validation.
 """
 
+from decimal import Decimal
+
 from django import forms
 from django.core.validators import RegexValidator
+
+from products.forms import StyledModelForm
 
 from .models import Coupon, Order
 from .validators import validate_card_number, validate_expiry
@@ -152,6 +156,108 @@ class CouponApplyForm(forms.Form):
         if coupon.status() == Coupon.Status.SCHEDULED:
             raise forms.ValidationError(f"{code} isn't active yet — check back soon.")
         return code
+
+
+DATETIME_LOCAL = "%Y-%m-%dT%H:%M"
+
+
+class CouponForm(StyledModelForm):
+    """The back-office coupon form.
+
+    Codes are normalized before the model's uniqueness check, so ``fall10``
+    collides with ``FALL10``. The cross-field rules — a percentage from 1
+    to 100, an end after the start, and a replacement chain without loops —
+    live in ``clean`` and ``clean_replaced_by``.
+    """
+
+    code = forms.CharField(
+        max_length=30,
+        validators=[
+            RegexValidator(
+                r"^[A-Za-z0-9-]+$", "Use letters, numbers, and hyphens only."
+            )
+        ],
+    )
+    value = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal("0.01"),
+        help_text="A percentage (1–100) or a dollar amount, per the type above.",
+    )
+    minimum_order = forms.DecimalField(
+        label="Minimum order (optional)",
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal("0.01"),
+        required=False,
+    )
+
+    class Meta:
+        model = Coupon
+        fields = [
+            "code",
+            "discount_type",
+            "value",
+            "starts_at",
+            "expires_at",
+            "minimum_order",
+            "once_per_customer",
+            "is_public",
+            "replaced_by",
+        ]
+        labels = {
+            "starts_at": "Starts",
+            "expires_at": "Expires",
+            "once_per_customer": "Once per customer",
+            "is_public": "Public",
+            "replaced_by": "Replaced by (optional)",
+        }
+        help_texts = {
+            "is_public": "May be offered automatically when another coupon expires.",
+            "replaced_by": "When this coupon expires, carts holding it switch to "
+            "this one.",
+        }
+        widgets = {
+            "starts_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format=DATETIME_LOCAL
+            ),
+            "expires_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format=DATETIME_LOCAL
+            ),
+        }
+
+    def clean_code(self):
+        return Coupon.normalize_code(self.cleaned_data["code"])
+
+    def clean_replaced_by(self):
+        """Reject a replacement that is this coupon, or that leads back to it."""
+        replacement = self.cleaned_data["replaced_by"]
+        if replacement is None or self.instance.pk is None:
+            return replacement  # A new coupon has nothing pointing at it yet.
+        visited = set()
+        link = replacement
+        while link is not None and link.pk not in visited:
+            if link.pk == self.instance.pk:
+                if link == replacement:
+                    raise forms.ValidationError("A coupon can't replace itself.")
+                raise forms.ValidationError(
+                    f"That makes a loop: {replacement.code} leads back to "
+                    f"{self.instance.code}."
+                )
+            visited.add(link.pk)
+            link = link.replaced_by
+        return replacement
+
+    def clean(self):
+        cleaned = super().clean()
+        percent = cleaned.get("discount_type") == Coupon.DiscountType.PERCENT
+        value = cleaned.get("value")
+        if percent and value is not None and not 1 <= value <= 100:
+            self.add_error("value", "A percentage must be between 1 and 100.")
+        starts_at, expires_at = cleaned.get("starts_at"), cleaned.get("expires_at")
+        if starts_at and expires_at and expires_at <= starts_at:
+            self.add_error("expires_at", "The end must come after the start.")
+        return cleaned
 
 
 class OrderStatusForm(forms.ModelForm):

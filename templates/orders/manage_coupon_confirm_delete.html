@@ -1,0 +1,21 @@
+{% extends "backoffice/base.html" %}
+
+{% block title %}Delete coupon — Back office{% endblock %}
+
+{% block backoffice %}
+  <div class="card mx-auto max-w-lg bg-base-100 shadow-md">
+    <div class="card-body">
+      <h2 class="card-title">Delete {{ coupon.code }}?</h2>
+      <p class="opacity-70">
+        This removes the coupon permanently. Carts holding it lose it, and
+        coupons it was replacing lose their link to it. Past orders keep
+        their copy of the code and the discount.
+      </p>
+      <form method="post" class="mt-4 flex justify-end gap-2">
+        {% csrf_token %}
+        <a href="{% url 'orders:manage_coupons' %}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-error">Delete coupon</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

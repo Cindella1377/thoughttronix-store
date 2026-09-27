@@ -12,16 +12,25 @@ form, hand everything to ``place_order``.
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.views import View
-from django.views.generic import DetailView, FormView, ListView, TemplateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
 from accounts.mixins import StaffRequiredMixin
 from products.models import Product
 
-from .forms import CheckoutForm, CouponApplyForm, OrderStatusForm
-from .models import Cart, CartItem, Order
+from .forms import CheckoutForm, CouponApplyForm, CouponForm, OrderStatusForm
+from .models import Cart, CartItem, Coupon, Order
 from .services import apply_coupon, place_order, refresh_cart_coupon
 
 
@@ -264,3 +273,42 @@ class UpdateOrderStatusView(StaffRequiredMixin, View):
         else:
             messages.error(request, "That isn't a status an order can have.")
         return redirect("orders:manage_order_detail", pk=order.pk)
+
+
+# Coupons: the same CRUD shape as the product screens.
+
+
+class ManageCouponListView(StaffRequiredMixin, ListView):
+    """Every coupon — scheduled, active, and expired — newest start first."""
+
+    template_name = "orders/manage_coupons.html"
+    context_object_name = "coupons"
+    queryset = Coupon.objects.select_related("replaced_by")
+    extra_context = {"section": "coupons"}
+
+
+class ManageCouponCreateView(StaffRequiredMixin, SuccessMessageMixin, CreateView):
+    model = Coupon
+    form_class = CouponForm
+    template_name = "orders/manage_coupon_form.html"
+    success_url = reverse_lazy("orders:manage_coupons")
+    success_message = "%(code)s created."
+    extra_context = {"section": "coupons"}
+
+
+class ManageCouponUpdateView(StaffRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = Coupon
+    form_class = CouponForm
+    template_name = "orders/manage_coupon_form.html"
+    success_url = reverse_lazy("orders:manage_coupons")
+    success_message = "%(code)s saved."
+    extra_context = {"section": "coupons"}
+
+
+class ManageCouponDeleteView(StaffRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = Coupon
+    context_object_name = "coupon"
+    template_name = "orders/manage_coupon_confirm_delete.html"
+    success_url = reverse_lazy("orders:manage_coupons")
+    success_message = "Coupon deleted."
+    extra_context = {"section": "coupons"}
