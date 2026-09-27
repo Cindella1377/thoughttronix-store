@@ -28,6 +28,46 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-09-27 — Stopped the dev server; committed the source.css safelist and the Homework 4 reflection
+
+*Continues the coupon session logged in the two entries below; these are
+the prompts given after the most recent one was written.*
+
+### Prompts
+1. commit and push it
+2. stop the dev server
+3. commit the source.css change
+4. push it
+5. commit the REFLECTION.md change
+6. push it
+7. write a session log for prompts.md
+
+### Summary
+- **Outcome:** No application code changed. The previous session log was
+  committed and pushed (`9141f5a`). The dev server on port 8000 was
+  stopped: before stopping it, the agent confirmed it was this project's
+  `manage.py runserver`, stopped both the auto-reloader and its server
+  process, and checked that port 8000 was free with no `runserver` left.
+  `assets/css/source.css` had carried an uncommitted change through the
+  whole session. Its diff turned out to be an `@source inline`
+  safelist for `alert-{success,info,warning,error}`, because `base.html`
+  builds those class names from message tags when the page renders. It
+  was committed (`e6a2244`) and pushed. `REFLECTION.md` gained the Homework 4
+  answers, written by the user during the session. The agent read the
+  diff and committed it word for word (`a970ac9`), without editing, then
+  pushed it. The working tree is clean and `main` matches GitHub.
+- **Deviations:** None. Each commit was pushed only when asked, and the
+  agent read each diff before writing a commit message for a change it
+  hadn't made.
+- **Sideways:** The dev server was not one the agent started. It was
+  the user's own, most likely in the other terminal, so stopping it also
+  ended the server in that terminal; the agent warned about this before
+  stopping it. Its process IDs had changed since earlier in the session,
+  so it had been restarted at some point; the agent re-identified the
+  process instead of reusing the old IDs. The `REFLECTION.md` commit
+  carries the agent's `Co-Authored-By` line even though the agent wrote
+  none of that text.
+
 ## 2026-09-27 — Viewed the coupons in the dev server; showed a swapped-out coupon faded beside its replacement
 
 *Continues the coupon session logged in the entry below; these are the
