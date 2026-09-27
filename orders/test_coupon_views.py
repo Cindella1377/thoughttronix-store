@@ -13,7 +13,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import CouponApplyForm
-from .models import Coupon
+from .models import Coupon, Order
+from .test_checkout_form import VALID_DATA
 
 AMOUNT = Coupon.DiscountType.AMOUNT
 DAY = datetime.timedelta(days=1)
@@ -205,3 +206,53 @@ def test_checkout_shows_the_discount(signed_in, cart_80, live):
 
     assert b"Discount (FALL10)" in response.content
     assert b"$72.00" in response.content
+
+
+# Orders placed with a coupon
+
+
+@pytest.fixture
+def discounted_order(signed_in, cart_80, live):
+    cart_80.coupon = live("FALL10")
+    cart_80.save()
+    signed_in.post(reverse("orders:checkout"), VALID_DATA)
+    return Order.objects.get()
+
+
+def test_checkout_button_shows_the_discounted_total(signed_in, cart_80, live):
+    cart_80.coupon = live("FALL10")
+    cart_80.save()
+
+    response = signed_in.get(reverse("orders:checkout"))
+
+    assert b"Place order \xe2\x80\x94 $72.00" in response.content
+
+
+def test_checkout_charges_the_discount(discounted_order):
+    assert discounted_order.total == Decimal("72.00")
+    assert discounted_order.coupon_code == "FALL10"
+
+
+def test_confirmation_shows_the_saving(signed_in, discounted_order):
+    response = signed_in.get(
+        reverse("orders:confirmation", kwargs={"pk": discounted_order.pk})
+    )
+    assert b"You saved $8.00 with FALL10." in response.content
+
+
+def test_history_and_detail_show_the_coupon(signed_in, discounted_order):
+    history = signed_in.get(reverse("orders:history"))
+    detail = signed_in.get(reverse("orders:detail", kwargs={"pk": discounted_order.pk}))
+
+    assert b"FALL10" in history.content
+    assert b"FALL10 saved you $8.00" in detail.content
+
+
+def test_back_office_order_detail_shows_the_coupon(
+    client, staff_user, discounted_order
+):
+    client.force_login(staff_user)
+    response = client.get(
+        reverse("orders:manage_order_detail", kwargs={"pk": discounted_order.pk})
+    )
+    assert b"Coupon FALL10" in response.content

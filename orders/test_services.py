@@ -4,14 +4,15 @@ Denormalization, cart emptying, atomicity, unavailable rejection, and
 the card_last4-only rule.
 """
 
+import datetime
 from decimal import Decimal
 
 import pytest
 
 from products.models import Product
 
-from .models import CartItem, Order, OrderItem
-from .services import place_order
+from .models import CartItem, Coupon, Order, OrderItem
+from .services import apply_coupon, place_order, refresh_cart_coupon
 from .test_checkout_form import VALID_DATA
 
 
@@ -124,7 +125,126 @@ def test_a_failure_midway_leaves_no_partial_order(
     assert CartItem.objects.count() == 2
 
 
-def test_the_coupon_seam_is_accepted_and_ignored(cart, cart_item, checkout_data):
-    order = place_order(cart, cart.user, checkout_data, coupon_code="THOUGHTS10")
+# Coupons — coverage priority 4 in the coupons PRD. The cart totals $80.00.
 
-    assert order.total == Decimal("699.98")
+
+def test_an_order_without_a_coupon_records_no_discount(cart_80, checkout_data, now):
+    order = place_order(cart_80, cart_80.user, checkout_data, now=now)
+
+    assert order.total == Decimal("80.00")
+    assert order.discount == Decimal("0.00")
+    assert order.coupon is None
+    assert order.coupon_code == ""
+
+
+def test_the_cart_coupon_is_charged_and_snapshotted(
+    cart_80, coupon, checkout_data, now
+):
+    cart_80.coupon = coupon
+    cart_80.save()
+
+    order = place_order(cart_80, cart_80.user, checkout_data, now=now)
+
+    assert order.total == Decimal("72.00")
+    assert order.discount == Decimal("8.00")
+    assert order.coupon == coupon
+    assert order.coupon_code == "FALL10"
+
+
+def test_the_snapshot_survives_the_coupon_being_deleted(
+    cart_80, coupon, checkout_data, now
+):
+    cart_80.coupon = coupon
+    cart_80.save()
+    order = place_order(cart_80, cart_80.user, checkout_data, now=now)
+
+    coupon.delete()
+    order.refresh_from_db()
+
+    assert order.coupon is None
+    assert order.coupon_code == "FALL10"
+    assert order.discount == Decimal("8.00")
+
+
+def test_a_coupon_that_expired_since_the_cart_was_viewed_is_swapped(
+    cart_80, make_coupon, checkout_data, now
+):
+    make_coupon("SAVE5", "5", discount_type=Coupon.DiscountType.AMOUNT, is_public=True)
+    ending = make_coupon("ENDING10", expires_at=now)
+    cart_80.coupon = ending
+    cart_80.save()
+
+    # Viewed a second before expiry: still fine.
+    refresh_cart_coupon(cart_80, now=now - datetime.timedelta(seconds=1))
+    assert cart_80.coupon == ending
+    # Placed at the moment of expiry: swapped, never honored.
+    order = place_order(cart_80, cart_80.user, checkout_data, now=now)
+
+    assert order.coupon_code == "SAVE5"
+    assert order.total == Decimal("75.00")
+
+
+def test_a_paused_coupon_records_no_discount(cart_80, make_coupon, checkout_data, now):
+    cart_80.coupon = make_coupon("SAVE15", "15", minimum_order=Decimal("100.00"))
+    cart_80.save()
+
+    order = place_order(cart_80, cart_80.user, checkout_data, now=now)
+
+    assert order.total == Decimal("80.00")
+    assert order.coupon is None
+    assert order.coupon_code == ""
+
+
+def test_placing_an_order_clears_the_cart_coupon_and_notice(
+    cart_80, coupon, checkout_data, now
+):
+    cart_80.coupon = coupon
+    cart_80.coupon_notice = "THOUGHTS10 expired, so we applied FALL10 instead."
+    cart_80.save()
+
+    place_order(cart_80, cart_80.user, checkout_data, now=now)
+
+    cart_80.refresh_from_db()
+    assert cart_80.coupon is None
+    assert cart_80.coupon_notice == ""
+
+
+def test_the_coupon_code_seam_applies_the_code(cart_80, coupon, checkout_data, now):
+    order = place_order(
+        cart_80, cart_80.user, checkout_data, coupon_code="fall10", now=now
+    )
+
+    assert order.coupon == coupon
+    assert order.total == Decimal("72.00")
+
+
+def test_the_coupon_code_seam_rejects_an_unknown_code(cart_80, checkout_data, now):
+    with pytest.raises(ValueError, match="No coupon"):
+        place_order(cart_80, cart_80.user, checkout_data, coupon_code="NOPE", now=now)
+
+    assert not Order.objects.exists()
+    assert cart_80.items.exists()
+
+
+def test_a_once_per_customer_coupon_is_swapped_on_second_use(
+    cart_80, make_coupon, product, checkout_data, now
+):
+    welcome = make_coupon(
+        "WELCOME5",
+        "5",
+        discount_type=Coupon.DiscountType.AMOUNT,
+        once_per_customer=True,
+    )
+    cart_80.coupon = welcome
+    cart_80.save()
+    first = place_order(cart_80, cart_80.user, checkout_data, now=now)
+    assert first.coupon == welcome
+
+    cart_80.add(product)
+    apply_coupon(cart_80, "WELCOME5", now=now)
+
+    assert cart_80.coupon is None
+    assert cart_80.coupon_notice == (
+        "You've already used WELCOME5 (one per customer), "
+        "and no replacement is available right now."
+    )

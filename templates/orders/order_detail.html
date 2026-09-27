@@ -59,6 +59,11 @@
       <div class="card-body items-end justify-center">
         <p class="text-sm uppercase tracking-wide opacity-60">Order total</p>
         <p class="text-3xl font-bold text-primary">${{ order.total|intcomma }}</p>
+        {% if order.coupon_code %}
+          <p class="text-sm text-success">
+            {{ order.coupon_code }} saved you ${{ order.discount|intcomma }}
+          </p>
+        {% endif %}
       </div>
     </div>
   </div>

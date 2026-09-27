@@ -46,6 +46,7 @@ def place_order(
     checkout_data: Mapping[str, Any],
     *,
     coupon_code: str | None = None,
+    now: datetime | None = None,
 ) -> Order:
     """Create an order from the cart's contents, then empty the cart.
 
@@ -55,11 +56,18 @@ def place_order(
     only the last four digits are stored; the full number and CVV never
     touch the database.
 
+    The cart's coupon is refreshed first (``coupon_code``, if given, is
+    applied to the cart before that), so a coupon that expired since the
+    customer last looked is swapped rather than honored. An active,
+    unpaused coupon is recorded on the order as a snapshot — code and
+    discount — and ``total`` is after the discount. The cart's coupon and
+    notice are cleared along with its items.
+
     All-or-nothing: runs in a transaction, so a failure partway through
     leaves no partial order and the cart intact.
 
-    Raises ``ValueError`` if the cart is empty or holds a product that is
-    no longer available.
+    Raises ``ValueError`` if the cart is empty, holds a product that is
+    no longer available, or ``coupon_code`` is unknown or not yet running.
     """
     lines = list(cart.lines())
     if not lines:
@@ -71,10 +79,19 @@ def place_order(
             "Remove them from the cart to check out."
         )
 
+    if coupon_code:
+        apply_coupon(cart, coupon_code, now=now)
+    refresh_cart_coupon(cart, now=now)
+    discount = cart.discount()
+    coupon = cart.coupon if discount else None
+
     card_digits = checkout_data["card_number"].replace(" ", "").replace("-", "")
     order = Order.objects.create(
         user=user,
-        total=cart.total(),
+        total=cart.total() - discount,
+        discount=discount,
+        coupon=coupon,
+        coupon_code=coupon.code if coupon else "",
         card_last4=card_digits[-4:],
         **{name: checkout_data[name] for name in ADDRESS_FIELDS},
     )
@@ -87,6 +104,7 @@ def place_order(
             quantity=line.quantity,
         )
     cart.items.all().delete()
+    cart.remove_coupon()
     return order
 
 
@@ -155,7 +173,7 @@ def refresh_cart_coupon(
         reason = ChangeReason.EXPIRED
     elif not coupon.is_active(now):
         reason = ChangeReason.NOT_STARTED
-    elif _is_used_up(coupon, cart.user):
+    elif coupon.is_used_up_by(cart.user):
         reason = ChangeReason.USED_UP
     else:
         return None
@@ -176,7 +194,7 @@ def _notice_for(change: CouponChange, cart: Cart) -> str:
         expired_on = timezone.localtime(old.expires_at)
         why = f"{old.code} expired on {expired_on:%b} {expired_on.day}"
     elif change.reason is ChangeReason.USED_UP:
-        why = f"You've already used {old.code}, and it's one per customer"
+        why = f"You've already used {old.code} (one per customer)"
     else:
         why = f"{old.code} isn't running right now"
 
@@ -213,7 +231,7 @@ def find_replacement(
     candidate = coupon.replaced_by
     while candidate is not None and candidate.pk not in visited:
         visited.add(candidate.pk)
-        if candidate.is_active(now) and not _is_used_up(candidate, user):
+        if candidate.is_active(now) and not candidate.is_used_up_by(user):
             return candidate
         candidate = candidate.replaced_by
 
@@ -222,7 +240,7 @@ def find_replacement(
     matches = [
         match
         for match in Coupon.objects.active(now).public().exclude(pk__in=visited)
-        if match.meets_minimum(total) and not _is_used_up(match, user)
+        if match.meets_minimum(total) and not match.is_used_up_by(user)
     ]
     if not matches:
         return None
@@ -237,11 +255,3 @@ def find_replacement(
         )
 
     return min(matches, key=closeness)
-
-
-def _is_used_up(coupon: Coupon, user: AbstractBaseUser) -> bool:
-    """Whether a once-per-customer coupon has already been used by ``user``.
-
-    Always ``False`` until ``Order.coupon`` exists (coupons plan, Phase 3).
-    """
-    return False

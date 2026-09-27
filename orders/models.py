@@ -158,6 +158,21 @@ class Order(models.Model):
 
     card_last4 = models.CharField(max_length=4)
 
+    # The coupon, snapshotted like everything else: code and discount stay
+    # true to the purchase even if the coupon is later edited or deleted.
+    # ``total`` is after the discount.
+    coupon = models.ForeignKey(
+        "Coupon",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
+    coupon_code = models.CharField(max_length=30, blank=True)
+    discount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+
     # default (not auto_now_add) so the seed can backdate orders.
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -286,6 +301,10 @@ class Coupon(models.Model):
         if self.discount_type == self.DiscountType.PERCENT:
             return f"{self.value.normalize():f}% off"
         return f"${self.value:,.2f} off"
+
+    def is_used_up_by(self, user):
+        """Whether ``user`` has spent this once-per-customer coupon already."""
+        return self.once_per_customer and self.orders.filter(user=user).exists()
 
     def meets_minimum(self, total):
         return self.minimum_order is None or total >= self.minimum_order

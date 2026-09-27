@@ -177,10 +177,9 @@ def test_returns_none_when_nothing_qualifies(cart_80, thoughts10, now):
     assert find_replacement(thoughts10, cart_80, now=now) is None
 
 
-# Per-customer limit — needs Order.coupon (coupons plan, Phase 3)
+# Per-customer limit
 
 
-@pytest.mark.xfail(strict=True, reason="Order.coupon arrives in coupons Phase 3")
 def test_chain_skips_a_coupon_the_customer_has_used_up(
     cart_80, thoughts10, make_coupon, now
 ):
@@ -193,7 +192,6 @@ def test_chain_skips_a_coupon_the_customer_has_used_up(
     assert find_replacement(thoughts10, cart_80, now=now) == fall
 
 
-@pytest.mark.xfail(strict=True, reason="Order.coupon arrives in coupons Phase 3")
 def test_skips_public_coupons_the_customer_has_used_up(
     cart_80, thoughts10, make_coupon, now
 ):

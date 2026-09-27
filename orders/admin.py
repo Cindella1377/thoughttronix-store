@@ -22,7 +22,7 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("number", "user", "status", "total", "created_at")
+    list_display = ("number", "user", "status", "total", "coupon_code", "created_at")
     list_filter = ("status",)
     search_fields = ("user__username", "shipping_name")
     date_hierarchy = "created_at"

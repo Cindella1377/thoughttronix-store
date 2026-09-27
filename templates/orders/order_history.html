@@ -27,7 +27,12 @@
               </td>
               <td>{{ order.created_at|date:"M j, Y" }}</td>
               <td>{% include "orders/partials/_status_badge.html" %}</td>
-              <td class="text-right font-semibold">${{ order.total|intcomma }}</td>
+              <td class="text-right">
+                <span class="font-semibold">${{ order.total|intcomma }}</span>
+                {% if order.coupon_code %}
+                  <span class="block text-xs text-success">{{ order.coupon_code }} −${{ order.discount|intcomma }}</span>
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         </tbody>
