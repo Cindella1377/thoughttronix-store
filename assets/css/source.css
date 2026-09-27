@@ -3,3 +3,7 @@
 @plugin "daisyui" {
   themes: night --default;
 }
+
+/* base.html builds alert classes from message.tags at render time, so the
+   scanner never sees them written out — safelist every level we emit. */
+@source inline("alert-{success,info,warning,error}");
