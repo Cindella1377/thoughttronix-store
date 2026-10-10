@@ -1,0 +1,11 @@
+{% autoescape off %}Hello {{ user.get_username }},
+
+The email on your ThoughtTronix account was changed, so this address is no longer the one on file.
+
+If that was you, there is nothing to do.
+
+If it wasn't, someone else has been into your account. Contact us straight away.
+
+ThoughtTronix
+Your Thoughts, Our Business.
+{% endautoescape %}

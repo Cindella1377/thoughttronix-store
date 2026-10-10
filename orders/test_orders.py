@@ -21,7 +21,9 @@ def order(cart, cart_item):
 
 @pytest.fixture
 def other_customer(db):
-    return get_user_model().objects.create_user(username="other", password="x")
+    return get_user_model().objects.create_user(
+        username="other", email="other@example.com", password="x"
+    )
 
 
 # --- Model behavior ----------------------------------------------------------
@@ -100,6 +102,36 @@ def test_checkout_page_shows_the_form_and_the_cart(client, customer, cart_item):
     assert "Billing address" in page
     assert "Seraphine Home Hub" in page
     assert "699.98" in page
+
+
+def test_checkout_prefills_the_account_email(client, customer, cart_item):
+    client.force_login(customer)
+
+    response = client.get(reverse("orders:checkout"))
+
+    assert response.context["form"]["email"].value() == "customer@example.com"
+    assert 'value="customer@example.com"' in response.content.decode()
+
+
+def test_an_overwritten_checkout_email_goes_on_the_order_only(
+    client, customer, cart_item
+):
+    client.force_login(customer)
+
+    client.post(reverse("orders:checkout"), {**VALID_DATA, "email": "gift@example.com"})
+
+    assert Order.objects.get().email == "gift@example.com"
+    customer.refresh_from_db()
+    assert customer.email == "customer@example.com"
+
+
+def test_changing_the_account_email_leaves_past_orders_alone(customer, order):
+    placed_with = order.email
+
+    customer.change_email("new@example.com")
+
+    order.refresh_from_db()
+    assert order.email == placed_with
 
 
 def test_a_valid_checkout_places_the_order(client, customer, cart_item):

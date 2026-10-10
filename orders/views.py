@@ -174,6 +174,13 @@ class CheckoutView(LoginRequiredMixin, FormView):
             return redirect("orders:cart")
         return super().dispatch(request, *args, **kwargs)
 
+    def get_initial(self):
+        # Only a starting value: the customer can overwrite it for this
+        # order, and the order stores its own copy.
+        initial = super().get_initial()
+        initial["email"] = self.request.user.email
+        return initial
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cart = Cart.for_user(self.request.user)

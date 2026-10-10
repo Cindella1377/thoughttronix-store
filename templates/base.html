@@ -27,7 +27,7 @@
             {% endif %}
             <a href="{% url 'orders:history' %}" class="btn btn-ghost btn-sm">Orders</a>
             {% include "orders/partials/_cart_badge.html" %}
-            <span class="text-sm opacity-70">Hi, {{ user.username }}</span>
+            <a href="{% url 'accounts:account' %}" class="btn btn-ghost btn-sm">Hi, {{ user.username }}</a>
             <form method="post" action="{% url 'accounts:logout' %}">
               {% csrf_token %}
               <button type="submit" class="btn btn-ghost btn-sm">Sign out</button>

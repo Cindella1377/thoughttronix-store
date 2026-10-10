@@ -1,6 +1,6 @@
 # CLAUDE.md — The ThoughtTronix Store
 
-A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes, and `prd/product-images.md` and `plans/product-images.md` for product photos.
+A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes, `prd/product-images.md` and `plans/product-images.md` for product photos, and `prd/account-email.md` and `plans/account-email.md` for account email and passwords.
 
 ## Commands
 
@@ -15,10 +15,17 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
 
 ## Project layout
 
-- `config/` — the project package (settings, root urls)
+- `config/` — the project package (settings, root urls). `config/mail.py`
+  is the default email backend: it prints each email in the dev-server
+  terminal as written, so a reset link can be copied whole. Mail settings
+  in `.env` switch to real delivery.
 - `accounts/` — custom user model (`accounts.User`, `AbstractUser` + nullable
   `job_title`). Roles are Django's own vocabulary: customers are plain users,
   employees are `is_staff`, the admin is `is_superuser`. No role field, no Groups.
+  Every account has a required email, unique ignoring case. The app also
+  carries the account page and the password reset and change flows, built
+  on Django's own views. `User.change_email` is the one place an email
+  changes: it saves the new address and sends a notice to the old one.
 - `products/` — catalog (`Category`, `Product`, `Tag`), its back-office CRUD,
   and the `seed` command. A product may carry one photo (`Product.image`);
   `Product.image_url` is the one place that chooses between the photo and

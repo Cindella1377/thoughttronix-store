@@ -32,6 +32,22 @@ The `seed` command creates a fixed demo world — the same one every run:
 | `employee` | `employee123` | Staff: the back office (products, orders, coupons, dashboard)  |
 | `customer` | `customer123` | A customer with order history and a live cart                  |
 
+Each demo login's email is `<username>@example.com`.
+
+## Accounts and email
+
+Signing up needs an email address, and no two accounts can share one.
+Signed-in users reach their account page from "Hi, username" in the
+navbar; there they can change their email or their password. The sign-in
+page links to "Forgot your password?", which emails a reset link that
+works once and lasts one hour.
+
+By default no real mail is sent. Reset links and the notice sent when an
+email changes are printed in the terminal running the dev server: copy the
+link from there. To send real mail, copy `.env.example` to `.env` and fill
+in `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`,
+`EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, and `DEFAULT_FROM_EMAIL`.
+
 ## Demo coupons
 
 Coupons are percent or dollar amounts off, run between two dates, and are
@@ -70,7 +86,8 @@ Staff manage coupons in the back office's Coupons tab.
 ## Repo layout
 
 `config/` is the project package (settings, root URLs); the four apps are
-`accounts` (custom user model), `products` (the public catalog and its
+`accounts` (custom user model, the account page, password reset and
+change), `products` (the public catalog and its
 back-office CRUD), `orders` (cart, checkout, orders, and coupons — with
 `place_order` and the coupon swap in `orders/services.py`), and `dashboard` (staff
 analytics, with the aggregations in `dashboard/queries.py`). Project-level
