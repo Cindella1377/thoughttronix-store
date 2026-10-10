@@ -28,6 +28,81 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-10-10 — Designed and built account email, password reset, and password change
+
+### Prompts
+1. yes /grill-me
+2. needs a provided an email when account is created, ability for them to reset there password when forgotten, can change there password if wanted.
+3. A, required and unique
+4. A, no exemption
+5. B, console by default with .env switch
+6. b, frees up the staff because when you get alot of costermer it would be a full-time job just fixing them
+7. A, re-enter the current password
+8. A, username only but using email address can sent them there username
+9. B, 1 hour
+10. B, notify the old address
+11. B, prefill it but still editable
+12. A, write the PRD then the plan
+13. build phase 1 of the plan
+14. build phase 2 of the plan
+15. build phase 3 of the plan
+16. build phase 4 of the plan
+17. build phase 5 of the plan
+18. run the dev server so I can see the account page
+19. stop the dev server
+20. Append a session log to PROMPTS.md at the repo root, under today's date, newest entry at the top. Record every prompt I gave you this session, in order, including any corrections. End the entry with a short summary: the outcome, any places where I deviated from a recommended answer or asked follow-up questions, and anything that went sideways.
+21. I viewed and all looks correct and running
+
+### Summary
+- **Outcome:** A ten-question grill-me interview produced
+  `prd/account-email.md` and `plans/account-email.md`, and all five phases
+  of the plan were built. Signup requires an email that is unique ignoring
+  case (model constraint and migration `accounts/0002`). The sign-in page
+  links to a password reset by emailed link, valid once and for one hour,
+  which also states the username. A new account page, reached from
+  "Hi, username", lets a signed-in user change their email (current
+  password required, notice sent to the old address) and their password.
+  Checkout prefills the account email. Mail settings read from `.env` and
+  default to printing in the dev-server terminal. `CLAUDE.md` and
+  `README.md` were updated. The suite went from 294 to 326 tests, green
+  at every phase boundary, with Ruff clean. Nothing was committed; the
+  work is uncommitted on `main`.
+- **Deviations:** One recommendation was overridden. On whether to have
+  an account page (prompt 6), the agent recommended a navbar
+  "Change password" link only, with staff fixing emails in the admin
+  site; the answer was the account page with self-service email editing,
+  so staff are not tied up fixing emails as customers grow. Every other
+  answer matched the recommendation. Prompt 8 added that the email
+  address can be used to send customers their username; the agent read
+  this as the reset email stating the username, with no separate
+  "forgot my username" page, and said so. No follow-up questions were
+  asked. The agent filled in details that were not discussed and listed
+  them after writing the PRD: an unchanged email is refused, the notice
+  does not state the new address, there are no separate "done" pages,
+  the email change is a model method, and the URL layout.
+- **Sideways:** `/grill-me` first ran with only "yes" and no plan to
+  grill, so the agent searched the repo, found none, and asked for one.
+  In Phase 2 a long shell heredoc failed to parse and wrote nothing; the
+  agent moved the edits into a script file. Printing a real reset email
+  then showed that Django's console backend split the reset link across
+  two lines with a stray `=`, so it could not be copied from the
+  terminal; the agent added a small console backend (`config/mail.py`)
+  that was not in the plan, with a test and a sentence in the PRD. The
+  link-expiry test also departed from the plan: it builds links 59 and
+  61 minutes old instead of overriding the timeout setting. Two test
+  edits were written wrong and fixed before the suite ran green: a
+  mangled regex escape in Phase 2, and a stray test parameter in Phase 3
+  that a `sed` command failed to remove. Stopping the dev server ended
+  the background task but left the server answering on port 8000; the
+  agent listed the leftover processes, confirmed they all came from its
+  own launch, and ended the process tree. The agent never opened the new
+  pages in a browser in any phase, did not run the plan's fresh-clone
+  check, and sent no real mail through a provider. The dev server was
+  started for the account page to be viewed by hand; after the log was
+  first written, the user reported having viewed it and that all looked
+  correct and was running (prompt 21). Applying the migration left the tracked
+  `db.sqlite3` grading snapshot modified and uncommitted.
+
 ## 2026-10-04 — Designed product photos in a grill-me interview; wrote the PRD, plan, and handoff
 
 ### Prompts
