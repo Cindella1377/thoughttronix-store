@@ -19,6 +19,7 @@ line 444 saves and builds a link
 there is another file token.py line 8 checks itself 
 
 I added more options like not having staff take time to change or correct the password reset. I also added the option they can look up there username as well. 
+** Learned that the accounts/forms isn't mine it is in Django own django/contrib/auth/forms.py and the token.py is also django's. that would make sense since i never made a auth pathway.
 
 Question 4 - 
 I dont have plans/account-security.md i believe AI said it was account-email. Let me see if i can get this fixed.
