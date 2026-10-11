@@ -24,7 +24,9 @@ I added more options like not having staff take time to change or correct the pa
 Question 4 - 
 I dont have plans/account-security.md i believe AI said it was account-email. Let me see if i can get this fixed.
 
+Oh this was there but was removed from the repo. the plan feature lives in my account-email which matches the PRD.      
 
+Decided to rename the file since if i included it it would make two plans of the same feature. 
 
 
 # Product Images - Questions
