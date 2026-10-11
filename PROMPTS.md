@@ -28,6 +28,38 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-10-10 — Tried to plan an account-security PRD that was never on disk
+
+### Prompts
+1. /prd-to-plan @prd/account-security.md
+2. 1
+3. saved it to prd/account-security.md
+4. saved it again, check prd/account-security.md now
+5. Save a summary of your session in PROMPTS.md
+
+### Summary
+- **Outcome:** No plan was written and no code changed. The skill needs a
+  PRD in context, and `prd/account-security.md` did not exist at any of
+  the three checks. The agent read the current `accounts` app (model,
+  forms, views, URLs) and `plans/account-email-slices.md` so the
+  exploration step is done for when the PRD arrives. This entry is the
+  only file changed.
+- **Deviations:** The agent offered three readings of the missing file: a
+  new PRD not yet saved, `prd/account-email.md` under its draft name, or a
+  PRD still to be written. Prompt 2 chose the first. The agent twice
+  recommended pasting the PRD text into the chat instead of saving again;
+  prompt 4 saved again instead. Prompt 5 asked for this log in different
+  words from the standard session-log prompt; the agent used the standard
+  entry shape.
+- **Sideways:** The file was reported saved twice and was missing both
+  times; `prd/` still held its four files, the newest from 15:48. A search
+  of the home folder for documents saved in the last 30 minutes (skipping
+  `AppData` and anything deeper than six folders) found no PRD. The only
+  account-security file found was `C:\Users\saman\cidm3312\account-security-draft.md`,
+  one folder above the repo: a byte-for-byte copy of the draft plan
+  removed in `05f884a`, written against `prd/account-email.md`, not a PRD.
+  Why the saves did not land was never diagnosed.
+
 ## 2026-10-10 — Designed and built account email, password reset, and password change
 
 ### Prompts

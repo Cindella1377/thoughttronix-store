@@ -1,3 +1,31 @@
+Homework 6:
+Question 1 - Phase 1 - 5 went smoothly no issue, Part of the grill-me i did make a few minor requests. I ended up building it prior so when i added the next steps adding new skills it shows no plan but the pytest does say that everything is working.
+
+Question 2 - two django that are used to complete the account security center is accouts/view.py and accounts/forms.py.
+accounts/view.py
+line 52 - is where you enter your email
+line 66 - check inbox 
+line 70 allow you to choose a new password
+
+
+Question 3 
+
+accounts/forms
+line 49 - is the email form
+line 58 - is for the new password form
+line 387 - confirms email match
+line 394 sends the link
+line 444 saves and builds a link
+there is another file token.py line 8 checks itself 
+
+I added more options like not having staff take time to change or correct the password reset. I also added the option they can look up there username as well. 
+
+Question 4 - 
+I dont have plans/account-security.md i believe AI said it was account-email. Let me see if i can get this fixed.
+
+
+
+
 # Product Images - Questions
 
 1. 
