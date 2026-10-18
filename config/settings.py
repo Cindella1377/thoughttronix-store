@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "products",
     "orders",
     "dashboard",
+    "wishlists",
 ]
 
 MIDDLEWARE = [
@@ -70,6 +71,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "orders.context_processors.cart",
+                "wishlists.context_processors.wishlist",
             ],
         },
     },

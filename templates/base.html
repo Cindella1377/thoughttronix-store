@@ -26,6 +26,9 @@
               </a>
             {% endif %}
             <a href="{% url 'orders:history' %}" class="btn btn-ghost btn-sm">Orders</a>
+            <a href="{% url 'wishlists:index' %}" class="btn btn-ghost btn-sm text-amber-400" aria-label="Your wishlists" title="Your wishlists">
+              {% include "wishlists/partials/_lamp_icon.html" %}
+            </a>
             {% include "orders/partials/_cart_badge.html" %}
             <a href="{% url 'accounts:account' %}" class="btn btn-ghost btn-sm">Hi, {{ user.username }}</a>
             <form method="post" action="{% url 'accounts:logout' %}">

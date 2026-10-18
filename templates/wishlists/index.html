@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Your wishlists — The ThoughtTronix Store{% endblock %}
+
+{% block content %}
+  <h1 class="mb-6 flex items-center gap-2 text-3xl font-bold">
+    {% include "wishlists/partials/_lamp_icon.html" with filled=True class="h-8 w-8 text-amber-400" %}
+    Your wishlists
+  </h1>
+
+  {% if main and main.products %}
+    <section class="card bg-base-100 shadow-md">
+      <div class="card-body">
+        <h2 class="card-title">{{ main.name }} <span class="badge badge-warning badge-sm">★ Main</span></h2>
+        <ul class="divide-y divide-base-300">
+          {% for product in main.products %}
+            <li class="flex items-center gap-4 py-3">
+              <img src="{{ product.image_url }}" alt="" class="h-14 w-14 rounded object-cover" />
+              <a href="{{ product.get_absolute_url }}" class="link-hover flex-1 font-semibold">{{ product.name }}</a>
+              <span class="text-primary">${{ product.price|intcomma }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  {% else %}
+    <div class="py-16 text-center">
+      <div class="flex justify-center text-amber-400">
+        {% include "wishlists/partials/_lamp_icon.html" with class="h-14 w-14" %}
+      </div>
+      <p class="mt-4 text-xl font-semibold">Your lamp is empty</p>
+      <p class="mt-2 opacity-70">Rub a lamp in the catalog to make a wish.</p>
+      <a href="{% url 'products:catalog' %}" class="btn btn-primary btn-sm mt-6">Browse the catalog</a>
+    </div>
+  {% endif %}
+{% endblock %}

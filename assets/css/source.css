@@ -7,3 +7,49 @@
 /* base.html builds alert classes from message.tags at render time, so the
    scanner never sees them written out — safelist every level we emit. */
 @source inline("alert-{success,info,warning,error}");
+
+/* The genie lamp's smoke: three puffs rise from the spout once, when an
+   add swaps in the gold lamp. Pure CSS — no JavaScript beyond HTMX. */
+@keyframes lamp-smoke {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-6px, -26px) scale(1.8);
+  }
+}
+
+.lamp-smoke {
+  position: absolute;
+  top: 6px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--color-base-content) 55%, transparent);
+  filter: blur(2px);
+  pointer-events: none;
+  opacity: 0;
+  animation: lamp-smoke 1.1s ease-out forwards;
+}
+
+.lamp-smoke-2 {
+  animation-delay: 0.15s;
+  right: 5px;
+}
+
+.lamp-smoke-3 {
+  animation-delay: 0.3s;
+  right: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lamp-smoke {
+    animation: none;
+  }
+}

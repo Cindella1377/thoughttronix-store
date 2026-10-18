@@ -1,0 +1,38 @@
+{# The genie lamp: toggles a product in the signed-in user's main list. #}
+{# Gold when saved (from the wishlist context processor), an outline #}
+{# otherwise. The lamp endpoint swaps this partial with smoke=True after #}
+{# an add, which plays the smoke puff once. Include with product. #}
+{% if user.is_authenticated %}
+  {% if product.pk in wishlist_product_ids %}
+    <button
+      hx-post="{% url 'wishlists:lamp' product.pk %}"
+      hx-swap="outerHTML"
+      class="lamp btn btn-circle btn-sm btn-ghost relative bg-base-100/80 text-amber-400"
+      aria-label="Remove {{ product.name }} from your main wishlist"
+      title="In your main wishlist — tap to remove">
+      {% include "wishlists/partials/_lamp_icon.html" with filled=True %}
+      {% if smoke %}
+        <span class="lamp-smoke" aria-hidden="true"></span>
+        <span class="lamp-smoke lamp-smoke-2" aria-hidden="true"></span>
+        <span class="lamp-smoke lamp-smoke-3" aria-hidden="true"></span>
+      {% endif %}
+    </button>
+  {% else %}
+    <button
+      hx-post="{% url 'wishlists:lamp' product.pk %}"
+      hx-swap="outerHTML"
+      class="lamp btn btn-circle btn-sm btn-ghost relative bg-base-100/80"
+      aria-label="Add {{ product.name }} to your main wishlist"
+      title="Add to your main wishlist">
+      {% include "wishlists/partials/_lamp_icon.html" %}
+    </button>
+  {% endif %}
+{% else %}
+  {# Anonymous visitors are prompted to sign in — a plain link, no HTMX. #}
+  <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}"
+     class="lamp btn btn-circle btn-sm btn-ghost bg-base-100/80"
+     aria-label="Sign in to save {{ product.name }} to a wishlist"
+     title="Sign in to save to a wishlist">
+    {% include "wishlists/partials/_lamp_icon.html" %}
+  </a>
+{% endif %}
