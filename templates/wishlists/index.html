@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load humanize %}
 
 {% block title %}Your wishlists — The ThoughtTronix Store{% endblock %}
 
@@ -9,21 +8,23 @@
     Your wishlists
   </h1>
 
-  {% if main and main.products %}
-    <section class="card bg-base-100 shadow-md">
-      <div class="card-body">
-        <h2 class="card-title">{{ main.name }} <span class="badge badge-warning badge-sm">★ Main</span></h2>
-        <ul class="divide-y divide-base-300">
-          {% for product in main.products %}
-            <li class="flex items-center gap-4 py-3">
-              <img src="{{ product.image_url }}" alt="" class="h-14 w-14 rounded object-cover" />
-              <a href="{{ product.get_absolute_url }}" class="link-hover flex-1 font-semibold">{{ product.name }}</a>
-              <span class="text-primary">${{ product.price|intcomma }}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </section>
+  {% if wishlists %}
+    <ul class="space-y-4">
+      {% for wishlist in wishlists %}
+        <li class="card bg-base-100 shadow-md">
+          <div class="card-body flex-row flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 class="card-title">
+                <a href="{% url 'wishlists:detail' wishlist.pk %}" class="link-hover">{{ wishlist.name }}</a>
+                {% if wishlist.is_main %}<span class="badge badge-warning badge-sm">★ Main</span>{% endif %}
+              </h2>
+              <p class="text-sm opacity-70">{{ wishlist.item_count }} item{{ wishlist.item_count|pluralize }}</p>
+            </div>
+            <a href="{% url 'wishlists:detail' wishlist.pk %}" class="btn btn-outline btn-sm">Open</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
   {% else %}
     <div class="py-16 text-center">
       <div class="flex justify-center text-amber-400">

@@ -1,0 +1,49 @@
+{% load cart_extras humanize %}
+{# A list's items, top first. Swapped whole into #list-items by every #}
+{# item change. Include with wishlist and editable — editable shows the #}
+{# owner's controls; without it the list is read-only for viewers. #}
+{% with lines=wishlist.lines %}
+  {% if lines %}
+    <ul class="divide-y divide-base-300 rounded-box bg-base-100 shadow-md">
+      {% for item in lines %}
+        {% with product=item.product %}
+          <li class="flex flex-wrap items-center gap-4 p-4 sm:flex-nowrap">
+            <a href="{{ product.get_absolute_url }}" class="shrink-0 {% if not product.is_available %}opacity-40 grayscale{% endif %}">
+              <img src="{{ product.image_url }}" alt="{{ product.name }}" class="h-16 w-16 rounded object-cover" />
+            </a>
+            <div class="min-w-0 flex-1 {% if not product.is_available %}opacity-60{% endif %}">
+              <a href="{{ product.get_absolute_url }}" class="link-hover font-semibold">{{ product.name }}</a>
+              <p class="text-sm">
+                <span class="text-primary">${{ product.price|intcomma }}</span>
+                {% if not product.is_available %}
+                  <span class="badge badge-warning badge-outline badge-sm ml-2">No longer available</span>
+                {% endif %}
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              {% if product.is_available %}
+                {% include "orders/partials/_add_button.html" with in_cart=cart_quantities|quantity_of:product.pk %}
+              {% endif %}
+              {% if editable %}
+                <button class="btn btn-ghost btn-sm btn-square text-error"
+                        hx-post="{% url 'wishlists:item_remove' wishlist.pk item.pk %}"
+                        hx-target="#list-items"
+                        aria-label="Remove {{ product.name }} from {{ wishlist.name }}"
+                        title="Remove from this list">✕</button>
+              {% endif %}
+            </div>
+          </li>
+        {% endwith %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="rounded-box bg-base-100 py-16 text-center shadow-md">
+      <div class="flex justify-center text-amber-400">
+        {% include "wishlists/partials/_lamp_icon.html" with class="h-12 w-12" %}
+      </div>
+      <p class="mt-4 text-xl font-semibold">Nothing wished for yet</p>
+      <p class="mt-2 opacity-70">This list is waiting for a thought worth keeping.</p>
+      <a href="{% url 'products:catalog' %}" class="btn btn-primary btn-sm mt-6">Browse the catalog</a>
+    </div>
+  {% endif %}
+{% endwith %}

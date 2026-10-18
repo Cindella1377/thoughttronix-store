@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ wishlist.name }} — The ThoughtTronix Store{% endblock %}
+
+{% block content %}
+  <div class="breadcrumbs mb-6 text-sm">
+    <ul>
+      <li><a href="{% url 'wishlists:index' %}">Your wishlists</a></li>
+      <li>{{ wishlist.name }}</li>
+    </ul>
+  </div>
+
+  <div class="mb-6 flex flex-wrap items-center gap-3">
+    <h1 class="text-3xl font-bold">{{ wishlist.name }}</h1>
+    {% if wishlist.is_main %}<span class="badge badge-warning">★ Main</span>{% endif %}
+  </div>
+
+  <div id="list-items">
+    {% include "wishlists/partials/_list_items.html" with editable=True %}
+  </div>
+{% endblock %}

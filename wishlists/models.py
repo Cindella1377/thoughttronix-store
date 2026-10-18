@@ -61,6 +61,10 @@ class Wishlist(models.Model):
     def __str__(self):
         return f"{self.name} ({self.owner.username})"
 
+    def lines(self):
+        """Items with their products loaded, top of the list first."""
+        return self.items.select_related("product", "product__category")
+
     def products(self):
         """Products on this list, newest-placed first."""
         return Product.objects.filter(wishlist_items__wishlist=self).order_by(

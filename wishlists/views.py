@@ -6,14 +6,15 @@ so someone else's list is a 404. HTMX endpoints render partials from
 """
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views import View
-from django.views.generic import TemplateView
+from django.views.generic import DetailView, TemplateView
 
 from products.models import Product
 
-from .models import Wishlist
+from .models import Wishlist, WishlistItem
 
 
 def toggle_or_404(wishlist, product):
@@ -34,10 +35,58 @@ class WishlistIndexView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["main"] = Wishlist.objects.filter(
-            owner=self.request.user, is_main=True
-        ).first()
+        context["wishlists"] = self.request.user.wishlists.annotate(
+            item_count=Count("items")
+        )
         return context
+
+
+class OwnListsMixin(LoginRequiredMixin):
+    """Restrict a list view to the signed-in user's own lists."""
+
+    def get_queryset(self):
+        return self.request.user.wishlists.all()
+
+
+class WishlistDetailView(OwnListsMixin, DetailView):
+    """One of the owner's lists, with its controls."""
+
+    template_name = "wishlists/detail.html"
+    context_object_name = "wishlist"
+
+
+def render_list_items(request, wishlist):
+    """Render a list's items partial — the target of every item change."""
+    return render(
+        request,
+        "wishlists/partials/_list_items.html",
+        {"wishlist": wishlist, "editable": True},
+    )
+
+
+class ItemActionView(LoginRequiredMixin, View):
+    """Base for HTMX item changes: act, then re-render the list's items.
+
+    Items are always fetched through the owner's list — never by bare pk.
+    """
+
+    def post(self, request, pk, item_pk, **kwargs):
+        item = get_object_or_404(
+            WishlistItem.objects.select_related("wishlist"),
+            pk=item_pk,
+            wishlist__pk=pk,
+            wishlist__owner=request.user,
+        )
+        self.act(item, **kwargs)
+        return render_list_items(request, item.wishlist)
+
+    def act(self, item, **kwargs):
+        raise NotImplementedError
+
+
+class ItemRemoveView(ItemActionView):
+    def act(self, item):
+        item.delete()
 
 
 class LampView(LoginRequiredMixin, View):

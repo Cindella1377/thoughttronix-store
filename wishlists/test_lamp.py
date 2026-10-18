@@ -118,12 +118,14 @@ def test_navbar_has_no_wishlist_link_for_visitors(client, product):
 
 
 def test_wishlists_page_shows_the_main_list(signed_in, customer, product):
-    Wishlist.objects.main_for(customer).add(product)
+    wishlist = Wishlist.objects.main_for(customer)
+    wishlist.add(product)
 
     response = signed_in.get(reverse("wishlists:index"))
 
     assert b"My Wishlist" in response.content
-    assert b"Seraphine Home Hub" in response.content
+    assert b"1 item" in response.content
+    assert reverse("wishlists:detail", args=[wishlist.pk]).encode() in response.content
 
 
 def test_wishlists_page_has_an_empty_state(signed_in):
