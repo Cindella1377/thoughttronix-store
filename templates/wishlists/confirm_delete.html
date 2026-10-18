@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Delete {{ wishlist.name }} — The ThoughtTronix Store{% endblock %}
+
+{% block content %}
+  <div class="card mx-auto max-w-lg bg-base-100 shadow-md">
+    <div class="card-body">
+      {% with count=wishlist.items.count %}
+        <h1 class="card-title text-2xl">Delete &ldquo;{{ wishlist.name }}&rdquo; and its {{ count }} item{{ count|pluralize }}?</h1>
+      {% endwith %}
+      <p class="opacity-70">
+        This can't be undone. If the list is shared, its link stops working too.
+      </p>
+      <form method="post" class="mt-4 flex justify-end gap-2">
+        {% csrf_token %}
+        <a href="{% url 'wishlists:index' %}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-error">Delete list</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -8,6 +8,17 @@ urlpatterns = [
     path("wishlists/", views.WishlistIndexView.as_view(), name="index"),
     path("wishlists/<int:pk>/", views.WishlistDetailView.as_view(), name="detail"),
     path(
+        "wishlists/<int:pk>/rename/",
+        views.WishlistRenameView.as_view(),
+        name="rename",
+    ),
+    path(
+        "wishlists/<int:pk>/delete/",
+        views.WishlistDeleteView.as_view(),
+        name="delete",
+    ),
+    path("wishlists/<int:pk>/main/", views.MakeMainView.as_view(), name="make_main"),
+    path(
         "wishlists/<int:pk>/items/<int:item_pk>/remove/",
         views.ItemRemoveView.as_view(),
         name="item_remove",

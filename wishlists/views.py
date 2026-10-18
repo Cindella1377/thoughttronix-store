@@ -5,15 +5,20 @@ so someone else's list is a 404. HTMX endpoints render partials from
 ``templates/wishlists/partials/``, never ``base.html``.
 """
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import DetailView, TemplateView
+from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
+from django.views.generic.detail import SingleObjectMixin
 
 from products.models import Product
 
+from .forms import WishlistForm
 from .models import Wishlist, WishlistItem
 
 
@@ -28,10 +33,32 @@ def toggle_or_404(wishlist, product):
     return wishlist.toggle(product)
 
 
-class WishlistIndexView(LoginRequiredMixin, TemplateView):
-    """The owner's wishlists."""
+class OwnListsMixin(LoginRequiredMixin):
+    """Restrict a list view to the signed-in user's own lists."""
+
+    def get_queryset(self):
+        return self.request.user.wishlists.all()
+
+
+class OwnerFormMixin:
+    """Hand the signed-in user to ``WishlistForm`` as the lists' owner."""
+
+    form_class = WishlistForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["owner"] = self.request.user
+        return kwargs
+
+
+class WishlistIndexView(
+    LoginRequiredMixin, OwnerFormMixin, SuccessMessageMixin, CreateView
+):
+    """The owner's wishlists, with the new-list form."""
 
     template_name = "wishlists/index.html"
+    success_url = reverse_lazy("wishlists:index")
+    success_message = "Created “%(name)s”."
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -41,11 +68,41 @@ class WishlistIndexView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class OwnListsMixin(LoginRequiredMixin):
-    """Restrict a list view to the signed-in user's own lists."""
+class WishlistRenameView(
+    OwnListsMixin, OwnerFormMixin, SuccessMessageMixin, UpdateView
+):
+    template_name = "wishlists/rename.html"
+    context_object_name = "wishlist"
+    success_url = reverse_lazy("wishlists:index")
+    success_message = "Renamed to “%(name)s”."
 
-    def get_queryset(self):
-        return self.request.user.wishlists.all()
+
+class MakeMainView(OwnListsMixin, SingleObjectMixin, View):
+    """Star a list as main; the lamp adds to it from now on."""
+
+    def post(self, request, pk):
+        wishlist = self.get_object()
+        wishlist.make_main()
+        messages.success(request, f"“{wishlist.name}” is now your main list.")
+        return redirect("wishlists:index")
+
+
+class WishlistDeleteView(OwnListsMixin, DeleteView):
+    """Confirm, then delete a list and its items. The main list is refused."""
+
+    template_name = "wishlists/confirm_delete.html"
+    context_object_name = "wishlist"
+    success_url = reverse_lazy("wishlists:index")
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and self.get_object().is_main:
+            messages.error(request, "Star another list before deleting your main list.")
+            return redirect("wishlists:index")
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Deleted “{self.object.name}”.")
+        return super().form_valid(form)
 
 
 class WishlistDetailView(OwnListsMixin, DetailView):

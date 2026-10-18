@@ -6,12 +6,14 @@ sharing is turned on — so the views only look things up and render.
 """
 
 from django.conf import settings
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.db.models.functions import Lower
 
 from products.models import Product
 
 MAIN_LIST_NAME = "My Wishlist"
+MAX_LISTS = 20
 
 
 class WishlistManager(models.Manager):
@@ -21,6 +23,11 @@ class WishlistManager(models.Manager):
         if wishlist is None:
             wishlist = self.create(owner=user, name=MAIN_LIST_NAME, is_main=True)
         return wishlist
+
+    def create_for(self, user, name):
+        """Create a named list; a user's first list becomes their main list."""
+        is_main = not self.filter(owner=user).exists()
+        return self.create(owner=user, name=name, is_main=is_main)
 
 
 class Wishlist(models.Model):
@@ -60,6 +67,21 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.owner.username})"
+
+    def delete(self, *args, **kwargs):
+        # The lamp always needs somewhere to put things.
+        if self.is_main:
+            raise ValidationError("Star another list before deleting your main list.")
+        return super().delete(*args, **kwargs)
+
+    @transaction.atomic
+    def make_main(self):
+        """Star this list as main, unstarring the owner's other lists."""
+        self.owner.wishlists.filter(is_main=True).exclude(pk=self.pk).update(
+            is_main=False
+        )
+        self.is_main = True
+        self.save(update_fields=["is_main"])
 
     def lines(self):
         """Items with their products loaded, top of the list first."""
