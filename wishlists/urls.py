@@ -24,6 +24,11 @@ urlpatterns = [
         name="item_remove",
     ),
     path(
+        "wishlists/<int:pk>/items/<int:item_pk>/<str:direction>/",
+        views.ItemMoveView.as_view(),
+        name="item_move",
+    ),
+    path(
         "wishlists/lamp/<int:product_pk>/",
         views.LampView.as_view(),
         name="lamp",

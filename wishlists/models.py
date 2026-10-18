@@ -93,6 +93,21 @@ class Wishlist(models.Model):
         self.is_main = True
         self.save(update_fields=["is_main"])
 
+    def move_up(self, item):
+        """Swap an item with the one above it; the top item stays put."""
+        self._swap(item, self.items.filter(position__gt=item.position).last())
+
+    def move_down(self, item):
+        """Swap an item with the one below it; the bottom item stays put."""
+        self._swap(item, self.items.filter(position__lt=item.position).first())
+
+    @transaction.atomic
+    def _swap(self, item, neighbour):
+        if neighbour is None:
+            return
+        item.position, neighbour.position = neighbour.position, item.position
+        WishlistItem.objects.bulk_update([item, neighbour], ["position"])
+
     def lines(self):
         """Items with their products loaded, top of the list first."""
         return self.items.select_related("product", "product__category")

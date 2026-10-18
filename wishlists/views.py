@@ -151,6 +151,16 @@ def render_save_to(request, product):
     return render(request, "wishlists/partials/_save_to.html", {"product": product})
 
 
+class ItemMoveView(ItemActionView):
+    def act(self, item, direction):
+        if direction == "up":
+            item.wishlist.move_up(item)
+        elif direction == "down":
+            item.wishlist.move_down(item)
+        else:
+            raise Http404("Items move up or down.")
+
+
 class LampView(LoginRequiredMixin, View):
     """HTMX: the genie lamp toggles a product in the main list.
 

@@ -25,6 +25,18 @@
                 {% include "orders/partials/_add_button.html" with in_cart=cart_quantities|quantity_of:product.pk %}
               {% endif %}
               {% if editable %}
+                <div class="join">
+                  <button class="btn btn-ghost btn-sm btn-square join-item"
+                          {% if forloop.first %}disabled{% endif %}
+                          hx-post="{% url 'wishlists:item_move' wishlist.pk item.pk 'up' %}"
+                          hx-target="#list-items"
+                          aria-label="Move {{ product.name }} up">↑</button>
+                  <button class="btn btn-ghost btn-sm btn-square join-item"
+                          {% if forloop.last %}disabled{% endif %}
+                          hx-post="{% url 'wishlists:item_move' wishlist.pk item.pk 'down' %}"
+                          hx-target="#list-items"
+                          aria-label="Move {{ product.name }} down">↓</button>
+                </div>
                 <button class="btn btn-ghost btn-sm btn-square text-error"
                         hx-post="{% url 'wishlists:item_remove' wishlist.pk item.pk %}"
                         hx-target="#list-items"
