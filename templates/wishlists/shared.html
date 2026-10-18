@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}{{ wishlist.owner.username }}'s {{ wishlist.name }} — The ThoughtTronix Store{% endblock %}
+
+{% block content %}
+  <div class="mb-6">
+    <p class="text-sm uppercase tracking-wide opacity-60">A wishlist from {{ wishlist.owner.username }}</p>
+    <h1 class="text-3xl font-bold">{{ wishlist.owner.username }}'s {{ wishlist.name }}</h1>
+    {% if not user.is_authenticated %}
+      <p class="mt-2 opacity-70">
+        Found something? <a href="{% url 'accounts:signup' %}" class="link link-primary">Sign up</a> to buy it or start a list of your own.
+      </p>
+    {% endif %}
+  </div>
+
+  {% include "wishlists/partials/_list_items.html" %}
+{% endblock %}

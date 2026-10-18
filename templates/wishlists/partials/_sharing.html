@@ -1,0 +1,20 @@
+{# A list's sharing switches. Each switch posts itself with HTMX and #}
+{# swaps this partial; a checked box sends on=on. Include with wishlist. #}
+<div id="sharing-{{ wishlist.pk }}" class="space-y-2">
+  <label class="flex cursor-pointer items-center gap-3">
+    <input type="checkbox" name="on" class="toggle toggle-sm toggle-primary"
+           {% if wishlist.share_token %}checked{% endif %}
+           hx-post="{% url 'wishlists:link_sharing' wishlist.pk %}"
+           hx-target="#sharing-{{ wishlist.pk }}"
+           hx-swap="outerHTML" />
+    <span class="text-sm">Share by link</span>
+  </label>
+  {% if wishlist.share_token %}
+    <div class="flex items-center gap-2 pl-12">
+      <input type="text" readonly class="input input-sm w-full font-mono text-xs"
+             value="{{ request.scheme }}://{{ request.get_host }}{% url 'wishlists:shared' wishlist.share_token %}"
+             aria-label="Share link for {{ wishlist.name }}" />
+    </div>
+    <p class="pl-12 text-xs opacity-60">Copy this link to share. Turning sharing off kills it; turning it back on makes a new one.</p>
+  {% endif %}
+</div>

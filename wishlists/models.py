@@ -5,6 +5,8 @@ ignoring case, new items on top, a fresh share token each time link
 sharing is turned on — so the views only look things up and render.
 """
 
+import secrets
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -92,6 +94,18 @@ class Wishlist(models.Model):
         )
         self.is_main = True
         self.save(update_fields=["is_main"])
+
+    def set_link_sharing(self, on):
+        """Turn "Share by link" on or off.
+
+        Off forgets the token, so the old link is gone for good; on makes a
+        fresh one. Turning on a list that is already shared keeps its link.
+        """
+        if on and not self.share_token:
+            self.share_token = secrets.token_urlsafe(16)
+        elif not on:
+            self.share_token = None
+        self.save(update_fields=["share_token"])
 
     def move_up(self, item):
         """Swap an item with the one above it; the top item stays put."""

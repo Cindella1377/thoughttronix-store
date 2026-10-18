@@ -146,6 +146,38 @@ class ItemRemoveView(ItemActionView):
         item.delete()
 
 
+class SharingToggleView(OwnListsMixin, SingleObjectMixin, View):
+    """Base for the HTMX sharing switches: act, then re-render them."""
+
+    def post(self, request, pk):
+        wishlist = self.get_object()
+        self.act(wishlist, request.POST.get("on") == "on")
+        return render(
+            request, "wishlists/partials/_sharing.html", {"wishlist": wishlist}
+        )
+
+    def act(self, wishlist, on):
+        raise NotImplementedError
+
+
+class LinkSharingView(SharingToggleView):
+    def act(self, wishlist, on):
+        wishlist.set_link_sharing(on)
+
+
+class SharedListView(DetailView):
+    """A list shared by link: read-only, open to anyone holding the link."""
+
+    template_name = "wishlists/shared.html"
+    context_object_name = "wishlist"
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            Wishlist.objects.select_related("owner"),
+            share_token=self.kwargs["token"],
+        )
+
+
 def render_save_to(request, product):
     """Render the product page's wishlist controls, button and ticks together."""
     return render(request, "wishlists/partials/_save_to.html", {"product": product})

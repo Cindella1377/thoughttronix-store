@@ -19,6 +19,11 @@ urlpatterns = [
     ),
     path("wishlists/<int:pk>/main/", views.MakeMainView.as_view(), name="make_main"),
     path(
+        "wishlists/<int:pk>/share/",
+        views.LinkSharingView.as_view(),
+        name="link_sharing",
+    ),
+    path(
         "wishlists/<int:pk>/items/<int:item_pk>/remove/",
         views.ItemRemoveView.as_view(),
         name="item_remove",
@@ -32,6 +37,11 @@ urlpatterns = [
         "wishlists/lamp/<int:product_pk>/",
         views.LampView.as_view(),
         name="lamp",
+    ),
+    path(
+        "wishlists/shared/<str:token>/",
+        views.SharedListView.as_view(),
+        name="shared",
     ),
     path(
         "wishlists/save/<int:product_pk>/<int:pk>/",

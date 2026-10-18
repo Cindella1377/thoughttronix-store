@@ -23,6 +23,10 @@
             <div class="flex items-center gap-2">
               {% if product.is_available %}
                 {% include "orders/partials/_add_button.html" with in_cart=cart_quantities|quantity_of:product.pk %}
+                {% if not editable %}
+                  {# On someone else's list the lamp saves to the viewer's own main list. #}
+                  {% include "wishlists/partials/_lamp.html" %}
+                {% endif %}
               {% endif %}
               {% if editable %}
                 <div class="join">
