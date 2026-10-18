@@ -28,6 +28,92 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-10-18 — Restored the stray draft plan; designed and built wishlists in eight phases
+
+### Prompts
+1. i have a PRD and plan but it saved one level outside of my reporsitory on local instead of thoughtrnix-stor\prd why is this and can you fix it?
+2. i approve if you can copy and bring it back that would be helpful
+3. yes commit it
+4. push it
+5. /grill-me Add customer wishlist under there profile login. They have the ability to share it and add/remove if they want to update without relading the page unless shared only visible to the owner. the add/remove button is only on the product detail page but can have a "genie lamp" on the thumbnail which is smail just the icon  in the catolog to add to wishlist.
+6. I like A and B
+7. I like A1 because you can have your public wishlist and still have your link sent on or off control its a way to get others to the site kinda like PR in away brings people to come to the site so they would have to sign up would be the benifit
+8. A, anyone can view but need account to buy
+9. B the thumbnail genuie lamp is a default to the main list that is assigned
+10. A, they can pick which list is main
+11. A, each list has its own switches
+12. b
+13. B the genuie lamb is normal and when clicked it has smoke coming out of it also
+14. A, outline lamp turns gold with smoke
+15. C, both
+16. C, both
+17. a
+18. b
+19. a
+20. a
+21. A staff isn't odd that is another recommendation if they choice to display it for items they like if someone buys from there recommendation create a dashboard point system simple  that only staff or admin can see
+22. B, separate follow-up feature
+23. A
+24. b i like this because what is public shouldn't matter if they want to be on a searching binge
+25. a
+26. b
+27. a with B newest first default with the option of owner drags items if they want to change view order
+28. b
+29. a but it shows it was added automaticly is not hidden this wasn't a user choice unless they add it themself so it would have to have a difference
+30. A user can remove sample if they dont support it if desired
+31. yes write the prd
+32. commit it and write the plan
+33. can we do a pytest to see if it works?
+34. keep it as listed, write the plan
+35. commit and push it implement
+36. yes please
+37. add the session to PROMPTS.md
+
+### Summary
+- **Outcome:** The stray file one folder above the repo,
+  `C:\Users\saman\cidm3312\account-security-draft.md`, was the draft plan
+  removed in `05f884a`. It was moved back to
+  `plans/account-security-draft.md`, committed, and pushed. A grill-me
+  interview then produced `prd/wishlists.md` and `plans/wishlists.md`
+  (eight phases), and all eight were built and pushed, one commit per
+  phase, in a new `wishlists` app. Shoppers keep up to 20 named lists,
+  with "My Wishlist" created on first save and starred as main. A genie
+  lamp on catalog thumbnails toggles the main list, turning gold with a
+  CSS smoke puff. The product page has a main button and a "Save to…"
+  dropdown. The owner's list page has ✕ and ↑/↓ buttons. Each list has a
+  "Share by link" switch (a new token each time it is turned on) and a
+  "Show on my public page" switch for `/wishlist/<username>/`. The
+  account page gained an optional first-name form, and `seed` makes
+  badged sample lists. The suite went from 326 to 435 tests, all green,
+  with Ruff clean.
+- **Deviations:** The user went against the recommendation several
+  times. On sharing they chose both the private link and the public
+  page, as two independent switches (prompts 6–7), over a single
+  three-level setting. They chose several named lists over one list
+  (9), and the one-button-plus-dropdown product control over per-list
+  checkboxes (12). They made the lamp a toggle with smoke (13), not
+  add-only, and chose a friendly public page for real users over the
+  one that hides whether an account exists (24). They chose a new link
+  each time over a separate "Get a new link" button (17). Their reasons
+  for the public page were PR and sign-ups. Drag-to-reorder (27) would
+  have broken the HTMX-only rule, so they took ↑/↓ buttons instead (28).
+  Sample lists had to be visibly marked as not the owner's choice
+  (29–30). Staff wishlists became a future staff-picks points feature,
+  split into its own PRD (21–22). Showing the owner's first name
+  needed a first-name form on the account page, because no page set
+  one; the user approved adding it (18–19).
+- **Sideways:** Why the draft landed outside the repo was never proven.
+  Its timestamp matched the commit that added it to `plans/`, which
+  suggests a tool started in the parent folder. The first delete of the
+  stray file was blocked by the permission check until the user
+  approved it. During the build, one shell command failed to parse
+  because of quoting and was rerun from a script file. In the browser
+  check, the automation tool's mouse clicks never reached the page (no
+  click events registered at all), so the lamp toggle was confirmed with
+  a script click. The user has not yet tried it with a real mouse.
+  `db.sqlite3` is changed by the migration and the reseed and remains
+  uncommitted.
+
 ## 2026-10-10 — Tried to plan an account-security PRD that was never on disk
 
 ### Prompts
