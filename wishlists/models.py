@@ -24,6 +24,16 @@ class WishlistManager(models.Manager):
             wishlist = self.create(owner=user, name=MAIN_LIST_NAME, is_main=True)
         return wishlist
 
+    def with_product_flag(self, user, product):
+        """The user's lists, each annotated ``has_product`` for one product."""
+        return self.filter(owner=user).annotate(
+            has_product=models.Exists(
+                WishlistItem.objects.filter(
+                    wishlist=models.OuterRef("pk"), product=product
+                )
+            )
+        )
+
     def create_for(self, user, name):
         """Create a named list; a user's first list becomes their main list."""
         is_main = not self.filter(owner=user).exists()

@@ -1,0 +1,62 @@
+{% load wishlist_extras %}
+{# The product page's wishlist controls: a button for the main list and #}
+{# a "Save to…" dropdown ticking every list that holds the product. Both #}
+{# endpoints swap this whole partial, so the button and ticks agree. #}
+{# The dropdown is DaisyUI's CSS-only one. Include with product. #}
+{% if user.is_authenticated %}
+  {% lists_for user product as lists %}
+  <div id="save-to" class="join">
+    {% with main=lists|first %}
+      {% if main.is_main and main.has_product %}
+        <button class="btn btn-sm join-item text-amber-400"
+                hx-post="{% url 'wishlists:lamp' product.pk %}"
+                hx-vals='{"partial": "save_to"}'
+                hx-target="#save-to"
+                hx-swap="outerHTML">
+          {% include "wishlists/partials/_lamp_icon.html" with filled=True class="h-4 w-4" %}
+          Remove from {{ main.name }}
+        </button>
+      {% elif product.is_available %}
+        <button class="btn btn-sm join-item"
+                hx-post="{% url 'wishlists:lamp' product.pk %}"
+                hx-vals='{"partial": "save_to"}'
+                hx-target="#save-to"
+                hx-swap="outerHTML">
+          {% include "wishlists/partials/_lamp_icon.html" with class="h-4 w-4" %}
+          Add to {% if main.is_main %}{{ main.name }}{% else %}My Wishlist{% endif %}
+        </button>
+      {% endif %}
+    {% endwith %}
+    <div class="dropdown dropdown-end join-item">
+      <div tabindex="0" role="button" class="btn btn-sm join-item" aria-label="Save to another wishlist">Save to… ▾</div>
+      <ul tabindex="0" class="dropdown-content menu z-10 mt-1 w-60 rounded-box bg-base-100 p-2 shadow-lg">
+        {% for wishlist in lists %}
+          <li>
+            {% if wishlist.has_product or product.is_available %}
+              <button hx-post="{% url 'wishlists:save_to' product.pk wishlist.pk %}"
+                      hx-target="#save-to"
+                      hx-swap="outerHTML"
+                      aria-pressed="{% if wishlist.has_product %}true{% else %}false{% endif %}">
+                <span class="w-4 text-success">{% if wishlist.has_product %}✓{% endif %}</span>
+                <span class="flex-1 truncate text-left">{{ wishlist.name }}</span>
+                {% if wishlist.is_main %}<span class="text-amber-400" title="Main list">★</span>{% endif %}
+              </button>
+            {% else %}
+              <span class="opacity-50"><span class="w-4"></span>{{ wishlist.name }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+        <li class="mt-1 border-t border-base-300 pt-1">
+          <a href="{% url 'wishlists:index' %}">+ New list</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+{% else %}
+  {# Anonymous visitors are prompted to sign in — a plain link, no HTMX. #}
+  <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}"
+     class="btn btn-sm">
+    {% include "wishlists/partials/_lamp_icon.html" with class="h-4 w-4" %}
+    Save to wishlist
+  </a>
+{% endif %}

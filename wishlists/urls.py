@@ -28,4 +28,9 @@ urlpatterns = [
         views.LampView.as_view(),
         name="lamp",
     ),
+    path(
+        "wishlists/save/<int:product_pk>/<int:pk>/",
+        views.SaveToView.as_view(),
+        name="save_to",
+    ),
 ]

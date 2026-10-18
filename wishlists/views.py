@@ -146,18 +146,36 @@ class ItemRemoveView(ItemActionView):
         item.delete()
 
 
+def render_save_to(request, product):
+    """Render the product page's wishlist controls, button and ticks together."""
+    return render(request, "wishlists/partials/_save_to.html", {"product": product})
+
+
 class LampView(LoginRequiredMixin, View):
     """HTMX: the genie lamp toggles a product in the main list.
 
     An add returns the gold lamp with its smoke puff; a remove returns the
-    outline lamp without it.
+    outline lamp without it. The product page's main button posts here
+    too, with ``partial=save_to``, and gets its own controls back.
     """
 
     def post(self, request, product_pk):
         product = get_object_or_404(Product, pk=product_pk)
         added = toggle_or_404(Wishlist.objects.main_for(request.user), product)
+        if request.POST.get("partial") == "save_to":
+            return render_save_to(request, product)
         return render(
             request,
             "wishlists/partials/_lamp.html",
             {"product": product, "smoke": added},
         )
+
+
+class SaveToView(LoginRequiredMixin, View):
+    """HTMX: "Save to…" toggles a product in one of the owner's lists."""
+
+    def post(self, request, product_pk, pk):
+        product = get_object_or_404(Product, pk=product_pk)
+        wishlist = get_object_or_404(request.user.wishlists, pk=pk)
+        toggle_or_404(wishlist, product)
+        return render_save_to(request, product)
