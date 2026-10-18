@@ -36,6 +36,7 @@
                 <h2 class="card-title">
                   <a href="{% url 'wishlists:detail' wishlist.pk %}" class="link-hover">{{ wishlist.name }}</a>
                   {% if wishlist.is_main %}<span class="badge badge-warning badge-sm">★ Main</span>{% endif %}
+                  {% if wishlist.is_sample %}<span class="badge badge-info badge-outline badge-sm" title="Added by the demo, not chosen by its owner">Sample list</span>{% endif %}
                 </h2>
                 <p class="text-sm opacity-70">{{ wishlist.item_count }} item{{ wishlist.item_count|pluralize }}</p>
               </div>

@@ -13,6 +13,7 @@
   <div class="mb-6 flex flex-wrap items-center gap-3">
     <h1 class="text-3xl font-bold">{{ wishlist.name }}</h1>
     {% if wishlist.is_main %}<span class="badge badge-warning">★ Main</span>{% endif %}
+    {% if wishlist.is_sample %}<span class="badge badge-info badge-outline badge-sm" title="Added by the demo, not chosen by its owner">Sample list</span>{% endif %}
   </div>
 
   <div id="list-items">

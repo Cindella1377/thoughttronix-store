@@ -12,6 +12,11 @@ Demo logins (documented in the README):
 
 The live cart holds the expired THOUGHTS10, so the coupon swap and its
 notice appear the first time 'customer' opens the cart.
+
+Every demo login has an empty "My Wishlist" as its main list. Sample
+lists, badged "Sample list", show each sharing state: 'customer' has a
+public "Birthday" and a link-shared "Gift ideas"; 'employee' has a public
+"Staff picks".
 """
 
 import random
@@ -30,6 +35,7 @@ from django.utils.text import slugify
 
 from orders.models import Cart, Coupon, Order, OrderItem
 from products.models import Category, Product, Tag
+from wishlists.models import Wishlist
 
 TAGS = [
     "always listening",
@@ -519,6 +525,29 @@ CUSTOMER_ORDERS = [
     (2, Order.Status.PLACED, [("veil", 1)]),
 ]
 
+# Sample wishlists, made by the seed rather than chosen by their owners,
+# so each is marked is_sample and badged "Sample list". None is ever the
+# main list, so its owner can always delete it: (owner username, list
+# name, public, shared by link, [product slugs, top of the list first]).
+# "Gift ideas" holds the unavailable EchoPatch, to show a greyed item.
+SAMPLE_WISHLISTS = [
+    ("customer", "Birthday", True, False, ["dreamweaver", "moodset", "calm-collar"]),
+    (
+        "customer",
+        "Gift ideas",
+        False,
+        True,
+        ["seraphine-mini", "whisper-alarm-clock", "echopatch"],
+    ),
+    (
+        "employee",
+        "Staff picks",
+        True,
+        False,
+        ["seraphine", "mindsync", "pulse-halo", "travel-faraday-case"],
+    ),
+]
+
 # Background orders spread across the trailing six months so the Phase 7
 # dashboard has a real time axis. 48 here + 4 above = 52 total.
 BACKGROUND_ORDER_COUNT = 48
@@ -564,7 +593,7 @@ COUPON_ORDER_SHARE = 0.25
 class Command(BaseCommand):
     help = (
         "Wipe and rebuild the demo world: catalog, tags, demo accounts, "
-        "coupons, and orders."
+        "coupons, orders, and sample wishlists."
     )
 
     @transaction.atomic
@@ -577,6 +606,7 @@ class Command(BaseCommand):
         self._create_coupons()
         self._create_customer_cart()
         self._create_orders()
+        self._create_wishlists()
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -586,6 +616,7 @@ class Command(BaseCommand):
                 f"{get_user_model().objects.count()} users, "
                 f"{Coupon.objects.count()} coupons, "
                 f"{Order.objects.count()} orders, "
+                f"{Wishlist.objects.filter(is_sample=True).count()} sample wishlists, "
                 f"and a live cart for 'customer'."
             )
         )
@@ -707,6 +738,26 @@ class Command(BaseCommand):
             cart.items.create(product=Product.objects.get(slug=slug), quantity=quantity)
         cart.coupon = Coupon.objects.get(code="THOUGHTS10")
         cart.save()
+
+    def _create_wishlists(self):
+        """An empty main list for each demo login, then the sample lists.
+
+        Owners are demo users, so the wipe's user delete cascades to them.
+        """
+        User = get_user_model()
+        for username, *_ in DEMO_USERS:
+            Wishlist.objects.main_for(User.objects.get(username=username))
+        for username, name, public, linked, slugs in SAMPLE_WISHLISTS:
+            wishlist = Wishlist.objects.create(
+                owner=User.objects.get(username=username),
+                name=name,
+                is_public=public,
+                is_sample=True,
+            )
+            wishlist.set_link_sharing(linked)
+            # Each add lands on top, so add the bottom item first.
+            for slug in reversed(slugs):
+                wishlist.add(Product.objects.get(slug=slug))
 
     def _create_orders(self):
         """Order history: 4 visible orders for 'customer', 48 background.

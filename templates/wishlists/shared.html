@@ -5,7 +5,10 @@
 {% block content %}
   <div class="mb-6">
     <p class="text-sm uppercase tracking-wide opacity-60">A wishlist from {{ wishlist.owner.display_name }}</p>
-    <h1 class="text-3xl font-bold">{{ wishlist.owner.display_name }}'s {{ wishlist.name }}</h1>
+    <h1 class="flex flex-wrap items-center gap-3 text-3xl font-bold">
+      {{ wishlist.owner.display_name }}'s {{ wishlist.name }}
+      {% if wishlist.is_sample %}<span class="badge badge-info badge-outline badge-sm" title="Added by the demo, not chosen by its owner">Sample list</span>{% endif %}
+    </h1>
     {% if not user.is_authenticated %}
       <p class="mt-2 opacity-70">
         Found something? <a href="{% url 'accounts:signup' %}" class="link link-primary">Sign up</a> to buy it or start a list of your own.
