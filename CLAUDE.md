@@ -1,6 +1,6 @@
 # CLAUDE.md — The ThoughtTronix Store
 
-A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes, `prd/product-images.md` and `plans/product-images.md` for product photos, and `prd/account-email.md` and `plans/account-email.md` for account email and passwords.
+A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes, `prd/product-images.md` and `plans/product-images.md` for product photos, `prd/account-email.md` and `plans/account-email.md` for account email and passwords, and `prd/wishlists.md` and `plans/wishlists.md` for wishlists.
 
 ## Commands
 
