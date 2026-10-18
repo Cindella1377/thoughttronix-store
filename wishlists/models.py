@@ -107,6 +107,11 @@ class Wishlist(models.Model):
             self.share_token = None
         self.save(update_fields=["share_token"])
 
+    def set_public(self, on):
+        """Show this list on the owner's public page, or take it off."""
+        self.is_public = on
+        self.save(update_fields=["is_public"])
+
     def move_up(self, item):
         """Swap an item with the one above it; the top item stays put."""
         self._swap(item, self.items.filter(position__gt=item.position).last())

@@ -8,6 +8,13 @@
     Your wishlists
   </h1>
 
+  {% if not user.first_name %}
+    <div class="alert mb-6" role="status">
+      <span>Add your first name so friends recognise your lists.</span>
+      <a href="{% url 'accounts:account' %}#first-name" class="btn btn-sm">Add name</a>
+    </div>
+  {% endif %}
+
   <form method="post" action="{% url 'wishlists:index' %}" class="card mb-6 bg-base-100 shadow-md">
     {% csrf_token %}
     <div class="card-body gap-3">

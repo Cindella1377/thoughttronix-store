@@ -6,6 +6,7 @@ so someone else's list is a 404. HTMX endpoints render partials from
 """
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count
@@ -13,7 +14,13 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    TemplateView,
+    UpdateView,
+)
 from django.views.generic.detail import SingleObjectMixin
 
 from products.models import Product
@@ -163,6 +170,28 @@ class SharingToggleView(OwnListsMixin, SingleObjectMixin, View):
 class LinkSharingView(SharingToggleView):
     def act(self, wishlist, on):
         wishlist.set_link_sharing(on)
+
+
+class PublicToggleView(SharingToggleView):
+    def act(self, wishlist, on):
+        wishlist.set_public(on)
+
+
+class PublicPageView(TemplateView):
+    """A user's public lists, read-only and open to anyone.
+
+    An unknown username is a 404; a real user with nothing public gets an
+    empty state. Signup already reveals whether a username exists.
+    """
+
+    template_name = "wishlists/public.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        owner = get_object_or_404(get_user_model(), username=kwargs["username"])
+        context["owner"] = owner
+        context["wishlists"] = owner.wishlists.filter(is_public=True)
+        return context
 
 
 class SharedListView(DetailView):

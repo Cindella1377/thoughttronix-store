@@ -73,6 +73,15 @@ class ChangePasswordForm(PasswordChangeForm):
             field.widget.attrs["class"] = "input w-full"
 
 
+class FirstNameForm(forms.ModelForm):
+    """Set or clear the account's first name, shown on shared wishlists."""
+
+    class Meta:
+        model = User
+        fields = ["first_name"]
+        widgets = {"first_name": forms.TextInput(attrs={"class": "input w-full"})}
+
+
 class EmailChangeForm(forms.Form):
     """Change the signed-in account's email.
 

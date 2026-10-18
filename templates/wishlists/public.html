@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ owner.display_name }}'s wishlists — The ThoughtTronix Store{% endblock %}
+
+{% block content %}
+  <div class="mb-6">
+    <h1 class="flex items-center gap-2 text-3xl font-bold">
+      {% include "wishlists/partials/_lamp_icon.html" with filled=True class="h-8 w-8 text-amber-400" %}
+      {{ owner.display_name }}'s wishlists
+    </h1>
+    {% if not user.is_authenticated %}
+      <p class="mt-2 opacity-70">
+        Found something? <a href="{% url 'accounts:signup' %}" class="link link-primary">Sign up</a> to buy it or start a list of your own.
+      </p>
+    {% endif %}
+  </div>
+
+  {% for wishlist in wishlists %}
+    <section class="mb-10">
+      <h2 class="mb-3 text-2xl font-semibold">{{ wishlist.name }}</h2>
+      {% include "wishlists/partials/_list_items.html" %}
+    </section>
+  {% empty %}
+    <div class="py-16 text-center">
+      <div class="flex justify-center text-amber-400">
+        {% include "wishlists/partials/_lamp_icon.html" with class="h-14 w-14" %}
+      </div>
+      <p class="mt-4 text-xl font-semibold">{{ owner.display_name }} hasn't shared any lists yet</p>
+      <p class="mt-2 opacity-70">The lamp is quiet. Maybe start some wishes of your own.</p>
+      <a href="{% url 'products:catalog' %}" class="btn btn-primary btn-sm mt-6">Browse the catalog</a>
+    </div>
+  {% endfor %}
+{% endblock %}

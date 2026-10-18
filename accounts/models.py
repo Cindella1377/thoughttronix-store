@@ -30,6 +30,11 @@ class User(AbstractUser):
             ),
         ]
 
+    @property
+    def display_name(self):
+        """What other people see: the first name if set, else the username."""
+        return self.first_name or self.username
+
     def change_email(self, new_email):
         """Replace the account's email and tell the address it replaces.
 

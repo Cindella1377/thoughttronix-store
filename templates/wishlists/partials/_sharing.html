@@ -17,4 +17,12 @@
     </div>
     <p class="pl-12 text-xs opacity-60">Copy this link to share. Turning sharing off kills it; turning it back on makes a new one.</p>
   {% endif %}
+  <label class="flex cursor-pointer items-center gap-3">
+    <input type="checkbox" name="on" class="toggle toggle-sm toggle-secondary"
+           {% if wishlist.is_public %}checked{% endif %}
+           hx-post="{% url 'wishlists:public_toggle' wishlist.pk %}"
+           hx-target="#sharing-{{ wishlist.pk }}"
+           hx-swap="outerHTML" />
+    <span class="text-sm">Show on my <a href="{% url 'wishlists:public' wishlist.owner.username %}" class="link">public page</a></span>
+  </label>
 </div>

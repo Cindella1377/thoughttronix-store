@@ -10,11 +10,12 @@ from django.contrib.auth.views import (
 )
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, FormView
+from django.views.generic import CreateView, FormView, UpdateView
 
 from .forms import (
     ChangePasswordForm,
     EmailChangeForm,
+    FirstNameForm,
     NewPasswordForm,
     ResetRequestForm,
     SignInForm,
@@ -93,9 +94,34 @@ class AccountView(LoginRequiredMixin, SuccessMessageMixin, FormView):
         kwargs["user"] = self.request.user
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault("name_form", FirstNameForm(instance=self.request.user))
+        return context
+
     def form_valid(self, form):
         form.save()
         return super().form_valid(form)
+
+
+class FirstNameView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    """Save the first-name form from the account page."""
+
+    form_class = FirstNameForm
+    template_name = "accounts/account.html"
+    success_url = reverse_lazy("accounts:account")
+    success_message = "Name saved."
+    http_method_names = ["post"]
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def form_invalid(self, form):
+        # Re-render the account page with this form's errors beside a fresh
+        # change-email form.
+        return self.render_to_response(
+            {"name_form": form, "form": EmailChangeForm(self.request.user)}
+        )
 
 
 class ChangePasswordView(SuccessMessageMixin, PasswordChangeView):

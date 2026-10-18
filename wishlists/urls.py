@@ -24,6 +24,11 @@ urlpatterns = [
         name="link_sharing",
     ),
     path(
+        "wishlists/<int:pk>/public/",
+        views.PublicToggleView.as_view(),
+        name="public_toggle",
+    ),
+    path(
         "wishlists/<int:pk>/items/<int:item_pk>/remove/",
         views.ItemRemoveView.as_view(),
         name="item_remove",
@@ -48,4 +53,6 @@ urlpatterns = [
         views.SaveToView.as_view(),
         name="save_to",
     ),
+    # Singular, so a username can never collide with an owner path.
+    path("wishlist/<str:username>/", views.PublicPageView.as_view(), name="public"),
 ]

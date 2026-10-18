@@ -27,6 +27,27 @@
       </div>
     </div>
 
+    <div id="first-name" class="card bg-base-100 shadow-md">
+      <div class="card-body">
+        <h2 class="card-title">First name</h2>
+        <p class="text-sm opacity-70">
+          Optional. Lists you share show it, so friends know whose list it is.
+        </p>
+
+        <form method="post" action="{% url 'accounts:first_name' %}" class="mt-4 space-y-4">
+          {% csrf_token %}
+          <div>
+            <label class="label mb-1" for="{{ name_form.first_name.id_for_label }}">First name</label>
+            {{ name_form.first_name }}
+            {% for error in name_form.first_name.errors %}
+              <p class="mt-1 text-sm text-error">{{ error }}</p>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn btn-primary w-full">Save name</button>
+        </form>
+      </div>
+    </div>
+
     <div class="card bg-base-100 shadow-md">
       <div class="card-body">
         <h2 class="card-title">Change email</h2>
