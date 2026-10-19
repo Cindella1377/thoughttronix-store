@@ -56,6 +56,28 @@ class ReviewManager(models.Manager):
             return Eligibility.ON_ITS_WAY
         return Eligibility.NOT_A_BUYER
 
+    def remove_unqualified(self, order):
+        """Delete the order's customer's reviews that the order no longer backs.
+
+        For each product on the order, the customer's review goes once they
+        have no Delivered order containing it — whatever the order moved
+        to. Reviews are deleted one by one, not by a queryset delete, so
+        each review's own ``delete`` runs. Returns how many were removed.
+        """
+        still_delivered = Order.objects.filter(
+            user=order.user,
+            status=Order.Status.DELIVERED,
+            items__product=models.OuterRef("product"),
+        )
+        unqualified = self.filter(
+            author=order.user, product__in=order.items.values("product")
+        ).exclude(models.Exists(still_delivered))
+        removed = 0
+        for review in unqualified:
+            review.delete()
+            removed += 1
+        return removed
+
     def summary(self, product):
         """A product's galaxy average, review count, and galaxies to fill."""
         totals = self.filter(product=product).aggregate(
