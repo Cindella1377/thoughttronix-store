@@ -1,14 +1,26 @@
 {# The product page's reviews section, rendered by {% reviews_section %}. #}
-{# The form's place shows the form to a buyer who may review; posting #}
-{# swaps the form for the new card. #}
+{# The form's place switches on eligibility: the form for a buyer who may #}
+{# review (posting swaps it for the new card), a message saying why there #}
+{# is no form, or nothing for a reviewer or staff. #}
 <section id="reviews" class="mt-16 scroll-mt-24">
   <h2 class="text-2xl font-bold">Reviews</h2>
 
   {% include "reviews/partials/_summary.html" %}
 
   <div id="review-form-place" class="mt-6">
-    {% if form %}
+    {% if eligibility == "can_review" %}
       {% include "reviews/partials/_form.html" %}
+    {% elif eligibility == "signed_out" %}
+      {% with next=product.get_absolute_url|add:"#reviews" %}
+        <p class="opacity-80">
+          <a href="{% url 'accounts:login' %}?next={{ next|urlencode:'' }}" class="link link-primary font-semibold">Sign in</a>
+          to review a product you've received
+        </p>
+      {% endwith %}
+    {% elif eligibility == "on_its_way" %}
+      <p class="opacity-80">Your order's on its way. You can review it once it's delivered.</p>
+    {% elif eligibility == "not_a_buyer" %}
+      <p class="opacity-80">Reviews come from customers who've received this product.</p>
     {% endif %}
   </div>
 

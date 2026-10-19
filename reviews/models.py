@@ -5,6 +5,8 @@ product, how a product's reviews add up — so the views only look things
 up and render.
 """
 
+from enum import StrEnum
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -13,22 +15,46 @@ from orders.models import Order
 from products.models import Product
 
 
-class ReviewManager(models.Manager):
-    def is_confirmed_buyer(self, user, product):
-        """Whether ``user`` has a Delivered order containing ``product``."""
-        return (
-            user.is_authenticated
-            and Order.objects.filter(
-                user=user, status=Order.Status.DELIVERED, items__product=product
-            ).exists()
-        )
+class Eligibility(StrEnum):
+    """Where a viewer stands with one product's reviews.
 
-    def can_review(self, user, product):
-        """Whether ``user`` may write a review of ``product`` now."""
-        return (
-            self.is_confirmed_buyer(user, product)
-            and not self.filter(author=user, product=product).exists()
+    The product page's form place switches on it; only ``CAN_REVIEW`` may
+    post.
+    """
+
+    SIGNED_OUT = "signed_out"
+    CAN_REVIEW = "can_review"
+    HAS_REVIEWED = "has_reviewed"
+    ON_ITS_WAY = "on_its_way"
+    STAFF = "staff"
+    NOT_A_BUYER = "not_a_buyer"
+
+
+class ReviewManager(models.Manager):
+    def eligibility(self, user, product):
+        """Where ``user`` stands with reviewing ``product``.
+
+        A confirmed buyer has a Delivered order containing the product.
+        Staff are judged by their own orders: with a Delivered one they
+        review like anyone else; without one they get ``STAFF``, whatever
+        else they have ordered.
+        """
+        if not user.is_authenticated:
+            return Eligibility.SIGNED_OUT
+        if self.filter(author=user, product=product).exists():
+            return Eligibility.HAS_REVIEWED
+        statuses = set(
+            Order.objects.filter(user=user, items__product=product).values_list(
+                "status", flat=True
+            )
         )
+        if Order.Status.DELIVERED in statuses:
+            return Eligibility.CAN_REVIEW
+        if user.is_staff:
+            return Eligibility.STAFF
+        if statuses & {Order.Status.PLACED, Order.Status.SHIPPED}:
+            return Eligibility.ON_ITS_WAY
+        return Eligibility.NOT_A_BUYER
 
     def summary(self, product):
         """A product's galaxy average, review count, and galaxies to fill."""

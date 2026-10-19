@@ -14,7 +14,7 @@ from django.views import View
 from products.models import Product
 
 from .forms import ReviewForm
-from .models import Review
+from .models import Eligibility, Review
 
 
 def render_with_summary(request, template, context, product):
@@ -30,14 +30,16 @@ def render_with_summary(request, template, context, product):
 class ReviewCreateView(LoginRequiredMixin, View):
     """HTMX: post a review; the form becomes the new card.
 
-    Only a confirmed buyer may post — anyone else gets a 404. A form with
-    errors comes back in place with everything the customer entered.
+    Only a viewer who ``CAN_REVIEW`` may post — anyone else gets a 404. A
+    form with errors comes back in place with everything the customer
+    entered.
     """
 
     def post(self, request, product_pk):
         product = get_object_or_404(Product, pk=product_pk)
-        if not Review.objects.is_confirmed_buyer(request.user, product):
-            raise Http404("Reviews come from customers who've received this product.")
+        eligibility = Review.objects.eligibility(request.user, product)
+        if eligibility != Eligibility.CAN_REVIEW:
+            raise Http404("You can't review this product.")
         form = ReviewForm(request.POST, product=product, author=request.user)
         if not form.is_valid():
             return render(

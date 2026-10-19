@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from orders.models import Order
 
+from .forms import ReviewForm
 from .models import Review
 
 
@@ -94,16 +95,44 @@ def test_a_visitor_cannot_post(client, product):
     assert not Review.objects.exists()
 
 
-def test_a_second_review_is_refused_by_the_form(
+def test_a_second_post_by_a_reviewer_is_refused(
     signed_in, customer, product, delivered_order
 ):
     Review.objects.create(product=product, author=customer, rating=4)
 
     response = post_review(signed_in, product, rating=1, body="Changed my mind.")
 
-    assert response.status_code == HTTPStatus.OK
-    assert b"already reviewed" in response.content
+    assert response.status_code == HTTPStatus.NOT_FOUND
     assert Review.objects.get().rating == 4
+
+
+def test_a_second_review_is_refused_by_the_form(customer, product):
+    Review.objects.create(product=product, author=customer, rating=4)
+
+    form = ReviewForm({"rating": 1}, product=product, author=customer)
+
+    assert not form.is_valid()
+    assert "You've already reviewed this product." in form.non_field_errors()
+
+
+def test_staff_without_a_delivered_order_cannot_post(client, staff_user, product):
+    client.force_login(staff_user)
+
+    response = post_review(client, product, rating=5)
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert not Review.objects.exists()
+
+
+def test_a_delivered_buyer_can_review_an_unavailable_product(
+    signed_in, make_order, customer, unavailable_product
+):
+    make_order(customer, unavailable_product)
+
+    response = post_review(signed_in, unavailable_product, rating=3)
+
+    assert response.status_code == HTTPStatus.OK
+    assert Review.objects.get().product == unavailable_product
 
 
 def test_a_missing_rating_returns_the_form_with_what_was_typed(

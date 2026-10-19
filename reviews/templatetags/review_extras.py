@@ -1,7 +1,7 @@
 from django import template
 
 from ..forms import ReviewForm
-from ..models import Review
+from ..models import Eligibility, Review
 
 register = template.Library()
 
@@ -10,9 +10,11 @@ register = template.Library()
 def reviews_section(context, product):
     """The product page's reviews: summary, the form's place, and the list."""
     user = context["user"]
-    can_review = Review.objects.can_review(user, product)
+    eligibility = Review.objects.eligibility(user, product)
+    can_review = eligibility == Eligibility.CAN_REVIEW
     return {
         "product": product,
+        "eligibility": eligibility,
         "summary": Review.objects.summary(product),
         "form": ReviewForm(product=product, author=user) if can_review else None,
         "reviews": product.reviews.select_related("author"),
