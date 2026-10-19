@@ -28,6 +28,63 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-10-18 — Designed product reviews with galaxy ratings; wrote the PRD and a nine-phase plan
+
+### Prompts
+1. /grill-me the site needs a review for products this would be in the product page for confirmed buyers it also has a rating system but lets not do start since that is for other things let make them galaxys 5 of them so if it is 5 its out of this world. for the soulsear owners they can but not next of kin to create a reiew. Customers can edit and delete there own review. staff can edit and delet any review. This process doesn't reload the page or cause the customer to lose their place.
+2. B delivered only
+3. A one per customer per product
+4. b with option of photo upload if desired
+5. A
+6. c if they bought it and sent it back that doesn't count it disqualifies that option to review
+7. c
+8. b
+9. B use those
+10. b
+11. c
+12. c
+13. b
+14. a yes but include the date with the review as well
+15. b
+16. c
+17. a
+18. yes write the PRD
+19. yes run prd-to-plan
+20. what does merging phases do?
+21. yes that order works write the plan and promts.md
+
+### Summary
+- **Outcome:** No code changed. A sixteen-question `/grill-me` interview
+  settled the design: only Delivered buyers review, one review per
+  customer per product, galaxies 1–5 (Black hole, Space junk, Low orbit,
+  Stellar, Out of this world), optional text and one optional photo,
+  reviews removed when their purchase stops being Delivered, in-place
+  HTMX write/edit/delete with an inline delete confirm, staff moderation
+  inline plus a back-office Reviews list, per-case messages in the form's
+  place, an "edited" / "edited by ThoughtTronix staff" marker, a
+  "Confirmed buyer · bought Mon YYYY" badge, ten per page with "Show
+  more", galaxies on catalog cards, live publishing with no approval
+  queue, and seeded samples including a pre-recall SoulSear Mark I
+  review. Wrote `prd/reviews.md` and `plans/reviews.md` (nine phases).
+  Nothing was committed.
+- **Deviations:** Question 3 chose optional text (B) over the recommended
+  required text, and added an optional photo; Question 4 then settled on
+  one photo. Question 5 chose deleting a review when its purchase is
+  returned (C) over the recommended keep-it rule (A). Question 13 accepted
+  the recommendation but asked for a date on each review, which became
+  Question 14 (posted date plus a bought-month badge). Every other answer
+  took the recommended option. Prompt 20 was a follow-up asking what
+  merging phases does; the agent explained, recommended keeping nine
+  phases and moving "Returns remove reviews" up to Phase 3, and that order
+  was approved.
+- **Sideways:** "SoulSear owners, but not next of kin" was read as "the
+  review belongs to the account that placed the order"; the agent stated
+  that reading in the first question and it was never corrected, so it
+  went into the PRD as written. The PRD notes two gaps the design leaves
+  open: a status changed in Django's admin site does not remove reviews,
+  and the seeded $1.2M Mark I order will show in long dashboard ranges.
+  No tests or Ruff were run, since no code changed.
+
 ## 2026-10-18 — Restored the stray draft plan; designed and built wishlists in eight phases
 
 ### Prompts
