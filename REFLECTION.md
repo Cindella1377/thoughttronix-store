@@ -1,3 +1,30 @@
+HW7
+Question 1 - Review TDD. Choose one phase where /tdd was used. Identify one behavior selected for TDD and explain why it was a good candidate for TDD. Then explain what the test checked and how a passing test provided evidence that the behavior worked. Name the test is your response.
+
+I didn't have it active and had to include it, it does help putting it in different phases.
+
+
+Question 2 - Trace an authorization rule. Find the code that deletes a review. Identify the exact view or function that handles the request and explain how the code determines whether the current user is allowed to perform the action. Reference filenames and line numbers in your response.
+
+it saves it locally and doesn't include it 
+
+Question 3 - Trace one HTMX interaction. Choose the meaningful HTMX interaction you added. Identify the template containing the hx-post attribute, the URL that receives the request, the view that handles it, and the HTML or partial returned by Django. Explain which part of the page HTMX replaces and what the user sees after the request completes. Reference filenames and line numbers in your response.
+
+I dont in this review request, it saves it in config 
+
+Question 4 - One design decision from grill-me. Choose one design decision from your interview that required you to choose between reasonable options. Explain the options, the decision you made, and one tradeoff you accepted. Then identify where that decision appears in your PRD or completed code.
+
+It was staff editing reviews, I went with it maybe the customer requests to edit there review or asks to take the photo down etc, i went a different direction on adding date and others i cant think of right now. 
+
+
+
+
+
+
+
+
+
+
 Homework 6:
 Question 1 - Phase 1 - 5 went smoothly no issue, Part of the grill-me i did make a few minor requests. I ended up building it prior so when i added the next steps adding new skills it shows no plan but the pytest does say that everything is working.
 
