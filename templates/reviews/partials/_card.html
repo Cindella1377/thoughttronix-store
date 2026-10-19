@@ -1,0 +1,16 @@
+{# One review. Include with review. #}
+<article id="review-{{ review.pk }}" class="card scroll-mt-24 bg-base-100 shadow-sm">
+  <div class="card-body gap-2 p-5">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+      {% include "reviews/partials/_galaxies.html" with filled=review.rating value=review.rating name=review.get_rating_display %}
+      <span class="font-semibold">{{ review.get_rating_display }}</span>
+    </div>
+    <p class="text-sm opacity-70">
+      <span class="font-medium">{{ review.author.display_name }}</span>
+      · Posted {{ review.created_at|date:"M j, Y" }}
+    </p>
+    {% if review.body %}
+      <p class="whitespace-pre-line">{{ review.body }}</p>
+    {% endif %}
+  </div>
+</article>

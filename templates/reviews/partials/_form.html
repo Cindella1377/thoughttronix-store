@@ -1,0 +1,55 @@
+{# The review form. Posting swaps the form for the new card, or for itself #}
+{# with errors and everything entered. The rating is DaisyUI's rating #}
+{# component: five radio buttons, so keyboards and screen readers work with #}
+{# no JavaScript; CSS shows the chosen level's name. Include with form and #}
+{# product. #}
+<form id="review-form"
+      hx-post="{% url 'reviews:create' product.pk %}"
+      hx-target="this"
+      hx-swap="outerHTML"
+      class="card bg-base-200">
+  <div class="card-body gap-4 p-5">
+    <h3 class="card-title text-lg">Review {{ product.name }}</h3>
+
+    {% for error in form.non_field_errors %}
+      <div role="alert" class="alert alert-error alert-soft">{{ error }}</div>
+    {% endfor %}
+
+    <fieldset class="galaxy-picker">
+      <legend class="label mb-2">Your rating</legend>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="rating rating-lg gap-1">
+          {% for level in form.levels %}
+            <input type="radio" name="{{ form.rating.html_name }}"
+                   class="mask mask-galaxy bg-secondary"
+                   aria-label="{{ level.value }} out of 5 galaxies, {{ level.label }}"
+                   value="{{ level.value }}"{% if form.rating.value|stringformat:"s" == level.value|stringformat:"s" %} checked{% endif %} />
+          {% endfor %}
+        </div>
+        <span aria-hidden="true">
+          <span class="galaxy-name opacity-60" data-rating="">Choose your galaxies</span>
+          {% for level in form.levels %}
+            <span class="galaxy-name" data-rating="{{ level.value }}">
+              <strong>{{ level.label }}</strong>{% if level.tagline %} <span class="italic opacity-70">— “{{ level.tagline }}”</span>{% endif %}
+            </span>
+          {% endfor %}
+        </span>
+      </div>
+      {% for error in form.rating.errors %}
+        <p class="mt-1 text-sm text-error">{{ error }}</p>
+      {% endfor %}
+    </fieldset>
+
+    <div>
+      <label class="label mb-1" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+      {{ form.body }}
+      {% for error in form.body.errors %}
+        <p class="mt-1 text-sm text-error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <div class="card-actions justify-end">
+      <button type="submit" class="btn btn-primary btn-sm">Post review</button>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,20 @@
+{# The product page's reviews section, rendered by {% reviews_section %}. #}
+{# The form's place shows the form to a buyer who may review; posting #}
+{# swaps the form for the new card. #}
+<section id="reviews" class="mt-16 scroll-mt-24">
+  <h2 class="text-2xl font-bold">Reviews</h2>
+
+  {% include "reviews/partials/_summary.html" %}
+
+  <div id="review-form-place" class="mt-6">
+    {% if form %}
+      {% include "reviews/partials/_form.html" %}
+    {% endif %}
+  </div>
+
+  <div id="review-list" class="mt-6 space-y-4">
+    {% for review in reviews %}
+      {% include "reviews/partials/_card.html" %}
+    {% endfor %}
+  </div>
+</section>

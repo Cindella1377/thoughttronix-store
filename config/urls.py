@@ -16,6 +16,7 @@ urlpatterns = [
     path("", include("orders.urls")),
     path("", include("products.urls")),
     path("", include("wishlists.urls")),
+    path("", include("reviews.urls")),
 ]
 
 # Uploaded media is served by Django in development only; static()

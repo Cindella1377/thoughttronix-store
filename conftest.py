@@ -13,7 +13,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
-from orders.models import Cart, CartItem, Coupon
+from orders.models import Cart, CartItem, Coupon, Order
 from products.models import Category, Product, Tag
 
 
@@ -159,3 +159,28 @@ def cart_80(cart, category):
     )
     CartItem.objects.create(cart=cart, product=product, quantity=2)
     return cart
+
+
+@pytest.fixture
+def make_order(db):
+    """Build an order of one product for a user, in the given status."""
+
+    def make(user, product, status=Order.Status.DELIVERED):
+        order = Order.objects.create(
+            user=user, status=status, total=product.price, email=user.email
+        )
+        order.items.create(
+            product=product,
+            product_name=product.name,
+            unit_price=product.price,
+            quantity=1,
+        )
+        return order
+
+    return make
+
+
+@pytest.fixture
+def delivered_order(make_order, customer, product):
+    """``customer`` received ``product``: a confirmed buyer who may review it."""
+    return make_order(customer, product)
