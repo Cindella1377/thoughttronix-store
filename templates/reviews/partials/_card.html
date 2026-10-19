@@ -1,4 +1,7 @@
-{# One review. Include with review. #}
+{% load review_extras %}
+{# One review, with Edit and Delete for a viewer who may edit it. Edit #}
+{# swaps the whole card for the form; Delete swaps only the buttons for #}
+{# the inline confirm. Include with review. #}
 <article id="review-{{ review.pk }}" class="card scroll-mt-24 bg-base-100 shadow-sm">
   <div class="card-body gap-2 p-5">
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -8,9 +11,15 @@
     <p class="text-sm opacity-70">
       <span class="font-medium">{{ review.author.display_name }}</span>
       · Posted {{ review.created_at|date:"M j, Y" }}
+      {% if review.updated_at %}
+        · <span class="italic">edited {{ review.updated_at|date:"M j, Y" }}</span>
+      {% endif %}
     </p>
     {% if review.body %}
       <p class="whitespace-pre-line">{{ review.body }}</p>
+    {% endif %}
+    {% if review|editable_by:user %}
+      {% include "reviews/partials/_card_actions.html" %}
     {% endif %}
   </div>
 </article>

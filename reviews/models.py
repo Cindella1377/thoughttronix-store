@@ -135,3 +135,11 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.get_rating_display()} for {self.product} by {self.author}"
+
+    def can_edit(self, user):
+        """Whether ``user`` may edit or delete this review: its author."""
+        return user.is_authenticated and user.pk == self.author_id
+
+    def mark_edited(self, now=None):
+        """Record an edit, so the card shows "edited" with its date."""
+        self.updated_at = now or timezone.now()

@@ -1,0 +1,12 @@
+{# A card's Edit and Delete buttons. Keep it brings them back by swapping #}
+{# the card itself. Include with review. #}
+<div id="review-{{ review.pk }}-actions" class="card-actions justify-end">
+  <button type="button" class="btn btn-ghost btn-xs"
+          hx-get="{% url 'reviews:edit' review.pk %}"
+          hx-target="#review-{{ review.pk }}"
+          hx-swap="outerHTML">Edit</button>
+  <button type="button" class="btn btn-ghost btn-xs text-error"
+          hx-get="{% url 'reviews:confirm_delete' review.pk %}"
+          hx-target="#review-{{ review.pk }}-actions"
+          hx-swap="outerHTML">Delete</button>
+</div>

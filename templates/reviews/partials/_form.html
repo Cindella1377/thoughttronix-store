@@ -1,15 +1,23 @@
-{# The review form. Posting swaps the form for the new card, or for itself #}
-{# with errors and everything entered. The rating is DaisyUI's rating #}
+{# The review form, for a new review or an edit. A new review posts to #}
+{# create and swaps for the new card; an edit takes the card's place and id #}
+{# and saves or cancels back into the card. With errors, the form swaps for #}
+{# itself with everything entered. The rating is DaisyUI's rating #}
 {# component: five radio buttons, so keyboards and screen readers work with #}
 {# no JavaScript; CSS shows the chosen level's name. Include with form and #}
 {# product. #}
-<form id="review-form"
-      hx-post="{% url 'reviews:create' product.pk %}"
+{% with review=form.instance %}
+<form {% if review.pk %}id="review-{{ review.pk }}"
+        hx-post="{% url 'reviews:edit' review.pk %}"
+      {% else %}id="review-form"
+        hx-post="{% url 'reviews:create' product.pk %}"
+      {% endif %}
       hx-target="this"
       hx-swap="outerHTML"
-      class="card bg-base-200">
+      class="card scroll-mt-24 bg-base-200">
   <div class="card-body gap-4 p-5">
-    <h3 class="card-title text-lg">Review {{ product.name }}</h3>
+    <h3 class="card-title text-lg">
+      {% if review.pk %}Edit your review{% else %}Review {{ product.name }}{% endif %}
+    </h3>
 
     {% for error in form.non_field_errors %}
       <div role="alert" class="alert alert-error alert-soft">{{ error }}</div>
@@ -49,7 +57,16 @@
     </div>
 
     <div class="card-actions justify-end">
-      <button type="submit" class="btn btn-primary btn-sm">Post review</button>
+      {% if review.pk %}
+        <button type="button" class="btn btn-ghost btn-sm"
+                hx-get="{% url 'reviews:card' review.pk %}"
+                hx-target="closest form"
+                hx-swap="outerHTML">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+      {% else %}
+        <button type="submit" class="btn btn-primary btn-sm">Post review</button>
+      {% endif %}
     </div>
   </div>
 </form>
+{% endwith %}

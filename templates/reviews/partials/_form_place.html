@@ -1,0 +1,20 @@
+{# The inside of the form's place, switching on eligibility: the form for a #}
+{# buyer who may review, the viewer's own card (pinned above the list), a #}
+{# message saying why there is no form, or nothing for staff. Posting swaps #}
+{# the form for the new card; deleting the card re-renders this. #}
+{% if eligibility == "can_review" %}
+  {% include "reviews/partials/_form.html" %}
+{% elif eligibility == "has_reviewed" %}
+  {% include "reviews/partials/_card.html" with review=own_review %}
+{% elif eligibility == "signed_out" %}
+  {% with next=product.get_absolute_url|add:"#reviews" %}
+    <p class="opacity-80">
+      <a href="{% url 'accounts:login' %}?next={{ next|urlencode:'' }}" class="link link-primary font-semibold">Sign in</a>
+      to review a product you've received
+    </p>
+  {% endwith %}
+{% elif eligibility == "on_its_way" %}
+  <p class="opacity-80">Your order's on its way. You can review it once it's delivered.</p>
+{% elif eligibility == "not_a_buyer" %}
+  <p class="opacity-80">Reviews come from customers who've received this product.</p>
+{% endif %}
