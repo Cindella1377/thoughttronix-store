@@ -2,7 +2,7 @@ from django import forms
 
 from products.forms import StyledModelForm
 
-from .models import Application, Job
+from .models import Application, Job, Stage
 
 # The largest résumé an applicant may upload.
 MAX_RESUME_MB = 5
@@ -78,3 +78,10 @@ class ResumeForm(StyledModelForm):
         if Application.objects.filter(job=self.job, user=self.user).exists():
             raise forms.ValidationError("You've already applied to this job.")
         return cleaned_data
+
+
+class MoveForm(forms.Form):
+    """Where to move an application. ``move_application`` keeps the rules."""
+
+    stage = forms.ModelChoiceField(queryset=Stage.objects.movable())
+    note = forms.CharField(required=False)

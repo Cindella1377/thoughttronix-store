@@ -32,6 +32,7 @@
                 <span class="badge badge-outline {% if job.is_open %}badge-success{% endif %}">{{ job.get_status_display }}</span>
               </td>
               <td class="text-right">
+                <a href="{% url 'careers:manage_applications' job.pk %}" class="btn btn-ghost btn-xs">Applications</a>
                 <a href="{% url 'careers:job_edit' job.pk %}" class="btn btn-ghost btn-xs">Edit</a>
               </td>
             </tr>

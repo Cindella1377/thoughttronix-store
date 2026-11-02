@@ -1,0 +1,69 @@
+{% extends "backoffice/base.html" %}
+
+{% block title %}{{ job.title }} applications — Back office{% endblock %}
+
+{% block backoffice %}
+  <div class="breadcrumbs mb-4 text-sm">
+    <ul>
+      <li><a href="{% url 'careers:manage_jobs' %}">Jobs</a></li>
+      <li>{{ job.title }}</li>
+    </ul>
+  </div>
+
+  <div class="mb-4 flex flex-wrap gap-2">
+    <a href="{% url 'careers:manage_applications' job.pk %}"
+       class="btn btn-xs {% if not current_stage %}btn-primary{% else %}btn-ghost{% endif %}">All</a>
+    {% for stage in filter_stages %}
+      <a href="?stage={{ stage.pk }}"
+         class="btn btn-xs {% if stage.pk == current_stage %}btn-primary{% else %}btn-ghost{% endif %}">{{ stage.name }}</a>
+    {% endfor %}
+  </div>
+
+  {% if applications %}
+    <div class="overflow-x-auto rounded-box bg-base-100 shadow-md">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Applicant</th>
+            <th>Stage</th>
+            <th>Applied</th>
+            <th>Move to</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for application in applications %}
+            <tr>
+              <td>
+                <a href="{% url 'careers:application' application.pk %}" class="link-hover font-semibold">{{ application.applicant_name }}</a>
+                {% if application.user %}
+                  <p class="text-xs opacity-60">{{ application.user.email }}</p>
+                {% endif %}
+              </td>
+              <td><span class="badge badge-outline">{{ application.stage.name }}</span></td>
+              <td>{{ application.created_at|date:"M j, Y" }}</td>
+              <td>
+                {% if application.is_open %}
+                  {% include "careers/partials/_move_form.html" with next=request.get_full_path %}
+                {% else %}
+                  <span class="text-sm opacity-60">Closed</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% elif current_stage %}
+    <div class="py-16 text-center">
+      <p class="text-5xl">🔭</p>
+      <p class="mt-4 text-xl font-semibold">Nobody in this stage</p>
+      <p class="mt-2 opacity-70">A vacant orbit. Try another stage.</p>
+    </div>
+  {% else %}
+    <div class="py-16 text-center">
+      <p class="text-5xl">📭</p>
+      <p class="mt-4 text-xl font-semibold">No applications yet</p>
+      <p class="mt-2 opacity-70">No one has thought of us yet.</p>
+    </div>
+  {% endif %}
+{% endblock %}

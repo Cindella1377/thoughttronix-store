@@ -30,4 +30,19 @@ urlpatterns = [
         views.ManageJobUpdateView.as_view(),
         name="job_edit",
     ),
+    path(
+        "backoffice/careers/jobs/<int:pk>/applications/",
+        views.ManageApplicationListView.as_view(),
+        name="manage_applications",
+    ),
+    path(
+        "backoffice/careers/applications/<int:pk>/",
+        views.ManageApplicationDetailView.as_view(),
+        name="application",
+    ),
+    path(
+        "backoffice/careers/applications/<int:pk>/move/",
+        views.MoveApplicationView.as_view(),
+        name="move",
+    ),
 ]

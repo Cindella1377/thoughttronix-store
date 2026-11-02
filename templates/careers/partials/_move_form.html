@@ -1,0 +1,16 @@
+{# Move one open application. Pass show_note for the note box, next to return there. #}
+<form method="post" action="{% url 'careers:move' application.pk %}" class="flex flex-wrap items-center gap-2">
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
+  <select name="stage" aria-label="Move to" class="select select-sm w-auto">
+    {% for stage in stages %}
+      {% if stage.pk != application.stage_id %}
+        <option value="{{ stage.pk }}">{{ stage.name }}</option>
+      {% endif %}
+    {% endfor %}
+  </select>
+  {% if show_note %}
+    <input type="text" name="note" aria-label="Note" placeholder="Note (optional)" class="input input-sm w-auto" />
+  {% endif %}
+  <button type="submit" class="btn btn-primary btn-sm">Move</button>
+</form>

@@ -104,6 +104,11 @@ class StageQuerySet(models.QuerySet):
         """The one active stage every new application starts in."""
         return self.get(kind=Stage.Kind.ENTRY, is_active=True)
 
+    def movable(self):
+        """Stages staff may move an application to. Withdrawing is the
+        applicant's own act."""
+        return self.filter(is_active=True).exclude(kind=Stage.Kind.WITHDRAWN)
+
 
 class Stage(models.Model):
     """A hiring stage. Staff own the name; the code reads only ``kind``."""
@@ -128,6 +133,11 @@ class Stage(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def is_open(self):
+        """Whether an application here is still in progress."""
+        return self.kind in (self.Kind.ENTRY, self.Kind.IN_PROGRESS)
+
 
 # What an applicant sees. Stage names are for staff and never reach them.
 PUBLIC_STATUSES = {
@@ -148,6 +158,11 @@ class ApplicationQuerySet(models.QuerySet):
     def for_applicant(self, user):
         """``user``'s own applications, newest first."""
         return self.filter(user=user).select_related("job", "stage")
+
+    def visible_to(self, user):
+        """What ``user`` may see from the staff side: everything but their
+        own. An employee who applies is purely an applicant."""
+        return self.exclude(user=user)
 
 
 class Application(models.Model):
@@ -183,6 +198,15 @@ class Application(models.Model):
 
     def __str__(self):
         return f"Application {self.pk} to {self.job}"
+
+    @property
+    def is_open(self):
+        return self.stage.is_open
+
+    @property
+    def applicant_name(self):
+        """What staff call the applicant, once the record may have no owner."""
+        return self.user.display_name if self.user else "Former applicant"
 
     @property
     def public_status(self):

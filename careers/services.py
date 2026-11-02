@@ -58,3 +58,54 @@ def submit_application(
         application.resume.delete(save=False)
         raise ApplicationError("You've already applied to this job.") from error
     return application
+
+
+def move_application(
+    application: Application,
+    stage: Stage,
+    by: AbstractBaseUser,
+    note: str = "",
+    now: datetime.datetime | None = None,
+) -> Application:
+    """Move an open application to ``stage`` and log who did it.
+
+    Staff may go forward, backward, or skip ahead, to any active stage
+    but Withdrawn. A stage that isn't open closes the application, and
+    only that: the job, other applications, and the user are untouched.
+    Nobody may move their own application. The rules read the saved row,
+    locked, so a stale page can't move what has since closed. Returns the
+    fresh application.
+    """
+    now = now or timezone.now()
+    if not by.can_recruit:
+        raise ApplicationError("Only the hiring team can move applications.")
+    if application.user_id == by.pk:
+        raise ApplicationError("You can't move your own application.")
+    if not stage.is_active:
+        raise ApplicationError("That stage has been retired.")
+    if stage.kind == Stage.Kind.WITHDRAWN:
+        raise ApplicationError("Only the applicant can withdraw an application.")
+    with transaction.atomic():
+        current = (
+            Application.objects.select_for_update(of=("self",))
+            .select_related("stage")
+            .get(pk=application.pk)
+        )
+        if not current.is_open:
+            raise ApplicationError("This application is closed.")
+        if current.stage == stage:
+            raise ApplicationError(f"This application is already in {stage.name}.")
+        from_stage = current.stage
+        current.stage = stage
+        if not stage.is_open:
+            current.closed_at = now
+        current.save(update_fields=["stage", "closed_at"])
+        StageChange.objects.create(
+            application=current,
+            from_stage=from_stage,
+            to_stage=stage,
+            changed_by=by,
+            note=note,
+            created_at=now,
+        )
+    return current

@@ -1,0 +1,66 @@
+{% extends "backoffice/base.html" %}
+
+{% block title %}{{ application.applicant_name }} — Back office{% endblock %}
+
+{% block backoffice %}
+  <div class="breadcrumbs mb-4 text-sm">
+    <ul>
+      <li><a href="{% url 'careers:manage_jobs' %}">Jobs</a></li>
+      <li><a href="{% url 'careers:manage_applications' application.job_id %}">{{ application.job.title }}</a></li>
+      <li>{{ application.applicant_name }}</li>
+    </ul>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body">
+        <h2 class="card-title">{{ application.applicant_name }}</h2>
+        {% if application.user %}
+          <p class="break-all text-sm opacity-70">{{ application.user.email }}</p>
+        {% endif %}
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <span class="badge badge-outline">{{ application.stage.name }}</span>
+          {% if not application.is_open %}<span class="badge badge-outline">Closed</span>{% endif %}
+        </div>
+
+        {% if application.is_open %}
+          <div class="mt-4">
+            {% include "careers/partials/_move_form.html" with show_note=True %}
+          </div>
+        {% endif %}
+
+        {% if application.resume %}
+          <div class="card-actions mt-4">
+            <a href="{% url 'careers:resume' application.pk %}" class="btn btn-outline btn-sm">Download résumé</a>
+          </div>
+        {% endif %}
+
+        <h3 class="mt-4 font-semibold">Cover letter</h3>
+        {% if application.cover_letter %}
+          <div class="space-y-2 text-sm">{{ application.cover_letter|linebreaks }}</div>
+        {% else %}
+          <p class="text-sm opacity-60">None given.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body">
+        <h2 class="card-title">Timeline</h2>
+        <ul class="mt-2 space-y-3">
+          {% for change in stage_changes %}
+            <li>
+              <p class="font-semibold">
+                {% if change.from_stage %}{{ change.from_stage.name }} → {{ change.to_stage.name }}{% else %}Applied to {{ change.to_stage.name }}{% endif %}
+              </p>
+              <p class="text-xs opacity-60">
+                {{ change.created_at|date:"M j, Y, g:i a" }}{% if change.changed_by %} · {{ change.changed_by.display_name }}{% endif %}
+              </p>
+              {% if change.note %}<p class="mt-1 text-sm">{{ change.note }}</p>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+{% endblock %}

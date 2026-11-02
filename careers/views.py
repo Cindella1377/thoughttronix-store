@@ -4,7 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import (
     CreateView,
@@ -16,9 +17,9 @@ from django.views.generic import (
 
 from accounts.mixins import RecruiterRequiredMixin
 
-from .forms import JobForm, ResumeForm
-from .models import Application, Job
-from .services import ApplicationError, submit_application
+from .forms import JobForm, MoveForm, ResumeForm
+from .models import Application, Job, Stage
+from .services import ApplicationError, move_application, submit_application
 
 
 class JobListView(ListView):
@@ -147,3 +148,91 @@ class ManageJobUpdateView(RecruiterRequiredMixin, SuccessMessageMixin, UpdateVie
     success_url = reverse_lazy("careers:manage_jobs")
     success_message = "“%(title)s” saved."
     extra_context = {"section": "careers"}
+
+
+class ManageApplicationListView(RecruiterRequiredMixin, ListView):
+    """One job's applications, optionally narrowed to a stage."""
+
+    template_name = "careers/manage_applications.html"
+    context_object_name = "applications"
+    extra_context = {"section": "careers"}
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.job = get_object_or_404(Job, pk=kwargs["pk"])
+        stage = request.GET.get("stage", "")
+        self.current_stage = int(stage) if stage.isdecimal() else None
+
+    def get_queryset(self):
+        applications = (
+            self.job.applications.visible_to(self.request.user)
+            .select_related("user", "stage")
+            .order_by("-created_at")
+        )
+        if self.current_stage:
+            applications = applications.filter(stage_id=self.current_stage)
+        return applications
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(
+            job=self.job,
+            current_stage=self.current_stage,
+            # Retired stages stay filterable: closed applications sit in them.
+            filter_stages=Stage.objects.all(),
+            stages=Stage.objects.movable(),
+            **kwargs,
+        )
+
+
+class ManageApplicationDetailView(RecruiterRequiredMixin, DetailView):
+    """One application: the résumé link, cover letter, and history."""
+
+    template_name = "careers/manage_application.html"
+    context_object_name = "application"
+    extra_context = {"section": "careers"}
+
+    def get_queryset(self):
+        return Application.objects.visible_to(self.request.user).select_related(
+            "job", "stage", "user"
+        )
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(
+            stages=Stage.objects.movable(),
+            stage_changes=self.object.stage_changes.select_related(
+                "from_stage", "to_stage", "changed_by"
+            ),
+            **kwargs,
+        )
+
+
+class MoveApplicationView(RecruiterRequiredMixin, View):
+    """Move one application, then go back where the recruiter came from."""
+
+    def post(self, request, pk):
+        application = get_object_or_404(
+            Application.objects.visible_to(request.user), pk=pk
+        )
+        form = MoveForm(request.POST)
+        if form.is_valid():
+            try:
+                move_application(
+                    application,
+                    form.cleaned_data["stage"],
+                    request.user,
+                    note=form.cleaned_data["note"],
+                )
+            except ApplicationError as error:
+                messages.error(request, str(error))
+            else:
+                messages.success(
+                    request, f"Moved to {form.cleaned_data['stage'].name}."
+                )
+        else:
+            messages.error(request, "Choose a stage to move to.")
+        next_url = request.POST.get("next", "")
+        if url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}
+        ):
+            return redirect(next_url)
+        return redirect(reverse("careers:application", args=[pk]))
