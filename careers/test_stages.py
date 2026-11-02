@@ -138,6 +138,15 @@ def test_shifting_reorders_active_stages(as_recruiter, offer):
     assert active_names()[:4] == ["Applied", "Screening", "Interview", "Offer"]
 
 
+def test_the_page_shows_the_new_order(as_recruiter, offer):
+    post_shift(as_recruiter, offer, "up")
+
+    response = as_recruiter.get(reverse("careers:stages"))
+
+    names = [stage.name for stage in response.context["stages"]]
+    assert names.index("Offer") < names.index("Interview")
+
+
 def test_shifting_skips_over_retired_stages(as_recruiter, offer):
     Stage.objects.filter(name="Interview").update(is_active=False)
 

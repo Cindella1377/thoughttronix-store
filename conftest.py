@@ -1,7 +1,7 @@
 """Project-wide pytest fixtures.
 
 Shared test data lives here as plain fixtures — no factories. The suite
-grows with the project; tests never invoke the seed command.
+grows with the project; tests that run the seed use temporary folders.
 """
 
 import datetime

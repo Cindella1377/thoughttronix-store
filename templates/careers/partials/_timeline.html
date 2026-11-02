@@ -7,7 +7,7 @@
         <li>
           {% if entry.to_stage %}
             <p class="font-semibold">
-              {% if entry.from_stage %}{{ entry.from_stage.name }} → {{ entry.to_stage.name }}{% else %}Applied to {{ entry.to_stage.name }}{% endif %}
+              {% if entry.from_stage %}{{ entry.from_stage.name }} → {{ entry.to_stage.name }}{% else %}Application received{% endif %}
             </p>
             <p class="text-xs opacity-60">
               {{ entry.created_at|date:"M j, Y, g:i a" }}{% if entry.changed_by %} · {{ entry.changed_by.display_name }}{% endif %}

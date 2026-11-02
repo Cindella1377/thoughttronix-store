@@ -395,7 +395,10 @@ class ManageStageListView(RecruiterRequiredMixin, ListView):
     extra_context = {"section": "careers"}
 
     def get_queryset(self):
-        return Stage.objects.annotate(application_count=Count("applications"))
+        # Grouping drops the model's default ordering, so name it here.
+        return Stage.objects.annotate(application_count=Count("applications")).order_by(
+            "position", "pk"
+        )
 
 
 class ManageStageCreateView(RecruiterRequiredMixin, SuccessMessageMixin, CreateView):

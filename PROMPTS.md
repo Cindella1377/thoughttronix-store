@@ -28,6 +28,91 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-01 — Designed an applicant tracking system by grilling, built it in eleven phases, and tested it in a headless browser
+
+### Prompts
+1. /grill-me Applicant Tracking System (ATS)
+2. A
+3. a
+4. b
+5. a
+6. C with the empty-stage rule
+7. c
+8. b
+9. b
+10. b
+11. a
+12. b
+13. b
+14. b
+15. c
+16. c
+17. a
+18. b
+19. a
+20. b
+21. b
+22. c
+23. b
+24. b
+25. a
+26. yes, write prd/careers.md also commit and push
+27. yes
+28. yes keep all 11
+29. create a careers branch, then commit and push
+30. yes start phase 1 than commit and push before moving on
+31. yes switch to /backoffice/careers/ then start phase 2 dont forget to commit and push for each phase
+32. yes start phase 3 and comment and push
+33. yes start phase 4 then commit and push
+34. yes start phase 5 then commit and push
+35. yes start phase 6 then commit and push
+36. yes start phase 7 then commit and push
+37. yes start phase 8 then commit and push
+38. yes start phase 9 then commit and push
+39. yes start phase 10 then commit and push
+40. yes start phase 11 then commit and push
+41. try the app in chrome first
+42. chrome is connected, go ahead
+43. use the headless browser
+44. yes commit and push, include the PROMPTS.md and CLAUDE.md fixes
+
+### Summary
+- **Outcome:** A 24-question grilling produced `prd/careers.md` and an
+  11-phase `plans/careers.md`. All eleven phases are built on a new
+  `careers` branch, one commit each: a public jobs site, private PDF
+  résumés, staff-editable stages with a fixed `kind`, an add-only timeline
+  of moves and notes, emails sent on commit, withdraw and reopen, a
+  recruiter-only table, board, and report, 12-month anonymizing, and a demo
+  world in `seed`. The suite ends at 790 passing tests. `CLAUDE.md` gained
+  the `is_recruiter` exception and a third deep module, both chosen openly.
+- **Deviations:** Question 3 chose staff-editable stages over the
+  recommended fixed list. Question 16 dropped the recommended reminder
+  banner after a hire. Question 24 kept Reopen silent over the recommended
+  automatic email, so a wrongly rejected applicant hears nothing unless a
+  recruiter follows up. Prompt 31 accepted moving the careers URLs under
+  `/backoffice/` after the agent found the mismatch. Prompt 32 said
+  "comment"; the agent took it to mean commit and said so. Prompt 43 chose
+  the headless browser after the Chrome extension would not connect.
+- **Sideways:** The agent copied `/manage/` URLs into the PRD from the
+  reviews PRD without checking the code, which uses `/backoffice/`; it
+  caught this during phase 1. The first phase 1 build command failed in
+  the shell before running anything, and the files were written directly
+  instead. The agent's phase 7 report claimed Hired and Rejected stages
+  could never retire, wrote a mid-sentence correction into it, and fixed
+  the claim properly after phase 8. Phase 8 thinking found three design
+  gaps (an anonymized open application, new notes on anonymized records,
+  and anonymized records blocking retirement), which went into the PRD.
+  Chrome never connected: three attempts failed even after the user
+  connected it, so the walkthrough ran in headless Chromium, not the
+  user's Chrome, on a throwaway database. That run found four bugs all the
+  tests had missed: the stage arrows saved but the page never showed the
+  new order, the navbar overlapped on phones, timelines said "Applied to
+  Applied", and the move dropdown defaulted to Applied. All four were
+  fixed with tests where tests could catch them. The first browser run
+  also had script mistakes of its own. `purge_applications` is still
+  unscheduled, and `CLAUDE.md` wrongly said tests never run `seed`, which
+  this session corrected.
+
 ## 2026-10-18 — Designed product reviews with galaxy ratings; wrote the PRD and a nine-phase plan
 
 ### Prompts

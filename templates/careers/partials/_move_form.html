@@ -5,7 +5,8 @@
   {% csrf_token %}
   {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
   {% if on_board %}<input type="hidden" name="board" value="1" />{% endif %}
-  <select name="stage" aria-label="Move to" class="select select-sm w-auto">
+  <select name="stage" aria-label="Move to" required class="select select-sm w-auto">
+    <option value="" selected disabled>Move to…</option>
     {% for stage in stages %}
       {% if stage.pk != application.stage_id %}
         <option value="{{ stage.pk }}">{{ stage.name }}</option>

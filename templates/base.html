@@ -12,13 +12,13 @@
   <body class="flex min-h-screen flex-col bg-base-200"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <header>
-      <nav class="navbar bg-base-100 shadow-sm">
-        <div class="navbar-start">
+      <nav class="navbar flex-wrap bg-base-100 shadow-sm">
+        <div class="navbar-start w-full md:w-1/2">
           <a class="btn btn-ghost text-xl" href="{% url 'products:catalog' %}">
             🧠 ThoughtTronix
           </a>
         </div>
-        <div class="navbar-end gap-2">
+        <div class="navbar-end w-full flex-wrap justify-start gap-2 md:w-1/2 md:justify-end">
           <a href="{% url 'careers:jobs' %}" class="btn btn-ghost btn-sm">Careers</a>
           {% if user.is_authenticated %}
             {% if user.is_staff %}

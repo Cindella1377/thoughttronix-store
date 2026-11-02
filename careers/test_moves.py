@@ -320,6 +320,12 @@ def test_a_closed_application_offers_no_move(as_recruiter, recruiter, applicatio
     assert move_url(application).encode() not in table.content
 
 
+def test_the_move_dropdown_makes_the_recruiter_choose(as_recruiter, application):
+    response = as_recruiter.get(detail_url(application))
+
+    assert "Move to…" in response.content.decode()
+
+
 def test_retired_and_withdrawn_stages_are_not_offered(as_recruiter, application):
     Stage.objects.filter(name="Offer").update(is_active=False)
 

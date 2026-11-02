@@ -99,7 +99,8 @@ via environs with working defaults — the app must run with no `.env` present.
 ## Testing
 
 pytest + pytest-django. Shared fixtures live in the project-level
-`conftest.py` — plain fixtures, no factory-boy. Tests never invoke the seed
-command. Every test runs with `MEDIA_ROOT` and `PRIVATE_MEDIA_ROOT` pointed at
+`conftest.py` — plain fixtures, no factory-boy. Most tests read the seed's
+constants instead of running it; the few that run `seed` are safe because
+every test runs with `MEDIA_ROOT` and `PRIVATE_MEDIA_ROOT` pointed at
 temporary directories (the autouse `media_root` and `private_media_root`
 fixtures), so none can touch the real folders. The suite must be green at every phase boundary.

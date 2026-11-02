@@ -92,7 +92,7 @@ def test_the_detail_page_shows_the_timeline(as_recruiter, recruiter, application
     response = as_recruiter.get(detail_url(application))
 
     assert b"Check references." in response.content
-    assert b"Applied to" in response.content
+    assert b"Application received" in response.content
     assert recruiter.display_name.encode() in response.content
 
 
