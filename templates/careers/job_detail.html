@@ -16,18 +16,23 @@
   <div class="mt-6 space-y-4">{{ job.description|linebreaks }}</div>
 
   <div class="mt-8">
-    {% if job.is_closed %}
+    {% if application %}
+      <div class="alert" role="status">
+        <span>You've applied to this job.</span>
+        <a href="{% url 'careers:applications' %}" class="btn btn-sm">My applications</a>
+      </div>
+    {% elif job.is_closed %}
       <div class="alert" role="status">
         <span>This job is no longer accepting applications.</span>
       </div>
     {% elif user.is_authenticated %}
-      <div class="alert" role="status">
-        <span>Online applications open soon.</span>
-      </div>
+      {% include "careers/partials/_apply_form.html" %}
     {% else %}
       <a href="{% url 'accounts:login' %}?next={{ job.get_absolute_url }}" class="btn btn-primary">
         Sign in to apply
       </a>
     {% endif %}
   </div>
+
+  {% include "careers/partials/_contact.html" %}
 {% endblock %}

@@ -37,6 +37,8 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
   committed; the full-size PNG originals are gitignored.
 - `media/` — uploaded photos; runtime data like `db.sqlite3` (gitignored,
   rebuilt by `seed`, served by Django only when `DEBUG` is on)
+- `private_media/` — résumés (gitignored). No URL reaches it: files leave
+  only through a permission-checked view, so never move them to `media/`
 - `orders/` — cart, checkout, orders, coupons, and back-office order and
   coupon management. The cart page carries six HTMX interactions: the
   core's add, quantity, and remove, plus apply coupon, remove coupon, and
@@ -55,10 +57,12 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
 Logic lives in models and managers; cross-model workflows get a service
 module; views stay thin.
 
-Exactly two deliberate deep modules, docstrings and type hints on every
+Exactly three deliberate deep modules, docstrings and type hints on every
 public function: `orders/services.py` (`place_order`, plus the coupon
-workflow — `apply_coupon`, `refresh_cart_coupon`, and `find_replacement`)
-and `dashboard/queries.py` (the dashboard's aggregations).
+workflow — `apply_coupon`, `refresh_cart_coupon`, and `find_replacement`),
+`dashboard/queries.py` (the dashboard's aggregations), and
+`careers/services.py` (the hiring workflows, the only code that changes an
+application's stage).
 
 Time-dependent code takes an optional `now` (defaulting to
 `timezone.now()`), so tests pass exact moments instead of freezing the
@@ -94,5 +98,6 @@ via environs with working defaults — the app must run with no `.env` present.
 
 pytest + pytest-django. Shared fixtures live in the project-level
 `conftest.py` — plain fixtures, no factory-boy. Tests never invoke the seed
-command. Every test runs with `MEDIA_ROOT` pointed at a temporary directory
-(the autouse `media_root` fixture), so none can touch the real `media/`. The suite must be green at every phase boundary.
+command. Every test runs with `MEDIA_ROOT` and `PRIVATE_MEDIA_ROOT` pointed at
+temporary directories (the autouse `media_root` and `private_media_root`
+fixtures), so none can touch the real folders. The suite must be green at every phase boundary.

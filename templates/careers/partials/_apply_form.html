@@ -1,0 +1,19 @@
+{# The application form on an Open job's page. #}
+<div class="card max-w-2xl bg-base-100 shadow-md">
+  <div class="card-body">
+    <h2 class="card-title">Apply for this job</h2>
+    <form method="post" action="{% url 'careers:apply' job.slug %}"
+          enctype="multipart/form-data" class="mt-2 space-y-4">
+      {% csrf_token %}
+      {% for error in form.non_field_errors %}
+        <p class="text-sm text-error">{{ error }}</p>
+      {% endfor %}
+      {% for field in form %}
+        {% include "products/partials/_field.html" %}
+      {% endfor %}
+      <div class="flex justify-end">
+        <button type="submit" class="btn btn-primary">Submit application</button>
+      </div>
+    </form>
+  </div>
+</div>

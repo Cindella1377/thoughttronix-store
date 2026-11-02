@@ -150,6 +150,13 @@ MEDIA_URL = "media/"
 
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Résumés live here, outside MEDIA_ROOT: no URL reaches this folder, and
+# files leave it only through a permission-checked view.
+PRIVATE_MEDIA_ROOT = BASE_DIR / "private_media"
+
+# Where applicants reach the hiring team.
+CAREERS_EMAIL = env.str("CAREERS_EMAIL", default="careers@thoughttronix.example")
+
 
 # Tailwind CSS + DaisyUI (django-tailwind-cli, standalone binary — no Node.js)
 

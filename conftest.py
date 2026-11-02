@@ -14,6 +14,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
 from careers.models import Job
+from careers.services import submit_application
 from orders.models import Cart, CartItem, Coupon, Order
 from products.models import Category, Product, Tag
 
@@ -24,6 +25,13 @@ def media_root(settings, tmp_path):
     nothing — the seed tests included — can touch the real ``media/``."""
     settings.MEDIA_ROOT = tmp_path / "media"
     return settings.MEDIA_ROOT
+
+
+@pytest.fixture(autouse=True)
+def private_media_root(settings, tmp_path):
+    """Point résumés at a temporary directory, as ``media_root`` does."""
+    settings.PRIVATE_MEDIA_ROOT = tmp_path / "private_media"
+    return settings.PRIVATE_MEDIA_ROOT
 
 
 @pytest.fixture
@@ -79,6 +87,28 @@ def make_job(db):
         if fields["status"] != Job.Status.DRAFT:
             fields.setdefault("published_at", COUPON_NOW)
         return Job.objects.create(**fields)
+
+    return make
+
+
+@pytest.fixture
+def pdf_bytes():
+    return b"%PDF-1.4 a small demo resume"
+
+
+@pytest.fixture
+def resume(pdf_bytes):
+    """A valid résumé upload. Only its opening bytes are ever checked."""
+    return SimpleUploadedFile("resume.pdf", pdf_bytes, content_type="application/pdf")
+
+
+@pytest.fixture
+def make_application(pdf_bytes):
+    """Submit an application the way the app does, with its own file."""
+
+    def make(job, user, **fields):
+        upload = SimpleUploadedFile("resume.pdf", pdf_bytes)
+        return submit_application(job, user, upload, **fields)
 
     return make
 

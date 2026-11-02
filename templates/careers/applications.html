@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}My applications — The ThoughtTronix Store{% endblock %}
+
+{% block content %}
+  <h1 class="text-4xl font-bold">My applications</h1>
+  <p class="mt-2 mb-8 text-lg italic opacity-70">We're thinking about you.</p>
+
+  {% if applications %}
+    <div class="space-y-4">
+      {% for application in applications %}
+        <div class="card bg-base-100 shadow-md">
+          <div class="card-body sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="card-title">
+                <a href="{{ application.job.get_absolute_url }}" class="link-hover">{{ application.job.title }}</a>
+              </h2>
+              <p class="text-sm opacity-70">Applied {{ application.created_at|date:"M j, Y" }}</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="badge badge-outline">{{ application.public_status }}</span>
+              <a href="{% url 'careers:resume' application.pk %}" class="btn btn-ghost btn-xs">Your résumé</a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="py-16 text-center">
+      <p class="text-5xl">📨</p>
+      <p class="mt-4 text-xl font-semibold">No applications yet</p>
+      <p class="mt-2 opacity-70">Your next thought could be a career.</p>
+      <a href="{% url 'careers:jobs' %}" class="btn btn-primary btn-sm mt-6">See open jobs</a>
+    </div>
+  {% endif %}
+
+  {% include "careers/partials/_contact.html" %}
+{% endblock %}
