@@ -164,17 +164,17 @@ Emails are sent with `transaction.on_commit`, so nobody hears about a move that 
 | `resume` | `/careers/applications/<pk>/resume/` | Protected résumé download |
 | `apply` | `/careers/<slug>/apply/` | Submit an application (POST) |
 | `job` | `/careers/<slug>/` | One job and its form |
-| `manage_jobs` | `/manage/careers/` | Back-office job list |
-| `job_create` | `/manage/careers/jobs/new/` | New job |
-| `job_edit` | `/manage/careers/jobs/<pk>/edit/` | Edit a job and change its status |
-| `manage_applications` | `/manage/careers/jobs/<pk>/applications/` | The table |
-| `board` | `/manage/careers/jobs/<pk>/board/` | The board |
-| `application` | `/manage/careers/applications/<pk>/` | Detail and timeline |
-| `move` | `/manage/careers/applications/<pk>/move/` | Move (POST) |
-| `reopen` | `/manage/careers/applications/<pk>/reopen/` | Reopen (POST) |
-| `note` | `/manage/careers/applications/<pk>/notes/` | Add a note (POST, HTMX) |
-| `stages` | `/manage/careers/stages/` | Stage administration |
-| `reports` | `/manage/careers/reports/` | Hiring report |
+| `manage_jobs` | `/backoffice/careers/` | Back-office job list |
+| `job_create` | `/backoffice/careers/jobs/new/` | New job |
+| `job_edit` | `/backoffice/careers/jobs/<pk>/edit/` | Edit a job and change its status |
+| `manage_applications` | `/backoffice/careers/jobs/<pk>/applications/` | The table |
+| `board` | `/backoffice/careers/jobs/<pk>/board/` | The board |
+| `application` | `/backoffice/careers/applications/<pk>/` | Detail and timeline |
+| `move` | `/backoffice/careers/applications/<pk>/move/` | Move (POST) |
+| `reopen` | `/backoffice/careers/applications/<pk>/reopen/` | Reopen (POST) |
+| `note` | `/backoffice/careers/applications/<pk>/notes/` | Add a note (POST, HTMX) |
+| `stages` | `/backoffice/careers/stages/` | Stage administration |
+| `reports` | `/backoffice/careers/reports/` | Hiring report |
 
 The `jobs` paths before `<slug>` are fixed, so `applications` is a reserved slug.
 

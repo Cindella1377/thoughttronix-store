@@ -25,17 +25,17 @@ Durable decisions that apply across all phases:
   - `/careers/applications/<pk>/withdraw/`
   - `/careers/applications/<pk>/resume/`
 - **Back-office URLs** (pks, recruiter-only):
-  - `/manage/careers/` — job list
-  - `/manage/careers/jobs/new/`
-  - `/manage/careers/jobs/<pk>/edit/`
-  - `/manage/careers/jobs/<pk>/applications/` — table
-  - `/manage/careers/jobs/<pk>/board/`
-  - `/manage/careers/applications/<pk>/` — detail and timeline
-  - `/manage/careers/applications/<pk>/move/`
-  - `/manage/careers/applications/<pk>/reopen/`
-  - `/manage/careers/applications/<pk>/notes/`
-  - `/manage/careers/stages/`
-  - `/manage/careers/reports/`
+  - `/backoffice/careers/` — job list
+  - `/backoffice/careers/jobs/new/`
+  - `/backoffice/careers/jobs/<pk>/edit/`
+  - `/backoffice/careers/jobs/<pk>/applications/` — table
+  - `/backoffice/careers/jobs/<pk>/board/`
+  - `/backoffice/careers/applications/<pk>/` — detail and timeline
+  - `/backoffice/careers/applications/<pk>/move/`
+  - `/backoffice/careers/applications/<pk>/reopen/`
+  - `/backoffice/careers/applications/<pk>/notes/`
+  - `/backoffice/careers/stages/`
+  - `/backoffice/careers/reports/`
 
 ---
 
