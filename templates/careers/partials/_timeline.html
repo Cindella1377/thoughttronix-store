@@ -1,0 +1,34 @@
+{# An application's history, newest last, with the note form. Staff only. #}
+<div id="timeline" class="card bg-base-100 shadow-md">
+  <div class="card-body">
+    <h2 class="card-title">Timeline</h2>
+    <ul class="mt-2 space-y-3">
+      {% for entry in timeline %}
+        <li>
+          {% if entry.to_stage %}
+            <p class="font-semibold">
+              {% if entry.from_stage %}{{ entry.from_stage.name }} → {{ entry.to_stage.name }}{% else %}Applied to {{ entry.to_stage.name }}{% endif %}
+            </p>
+            <p class="text-xs opacity-60">
+              {{ entry.created_at|date:"M j, Y, g:i a" }}{% if entry.changed_by %} · {{ entry.changed_by.display_name }}{% endif %}
+            </p>
+            {% if entry.note %}<p class="mt-1 text-sm">{{ entry.note }}</p>{% endif %}
+          {% else %}
+            <p class="text-sm">{{ entry.body|linebreaksbr }}</p>
+            <p class="text-xs opacity-60">
+              Note · {{ entry.created_at|date:"M j, Y, g:i a" }}{% if entry.author %} · {{ entry.author.display_name }}{% endif %}
+            </p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+
+    <form method="post" action="{% url 'careers:note' application.pk %}"
+          hx-post="{% url 'careers:note' application.pk %}" hx-target="#timeline" hx-swap="outerHTML"
+          class="mt-4 space-y-2">
+      {% csrf_token %}
+      {% include "products/partials/_field.html" with field=note_form.body %}
+      <button type="submit" class="btn btn-outline btn-sm">Add note</button>
+    </form>
+  </div>
+</div>

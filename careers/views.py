@@ -17,7 +17,7 @@ from django.views.generic import (
 
 from accounts.mixins import RecruiterRequiredMixin
 
-from .forms import JobForm, MoveForm, ReopenForm, ResumeForm
+from .forms import JobForm, MoveForm, NoteForm, ReopenForm, ResumeForm
 from .models import Application, Job, Stage
 from .services import (
     ApplicationError,
@@ -232,9 +232,8 @@ class ManageApplicationDetailView(RecruiterRequiredMixin, DetailView):
         return super().get_context_data(
             stages=Stage.objects.movable(),
             reopen_stages=Stage.objects.reopenable(),
-            stage_changes=self.object.stage_changes.select_related(
-                "from_stage", "to_stage", "changed_by"
-            ),
+            timeline=self.object.timeline(),
+            note_form=NoteForm(),
             **kwargs,
         )
 
@@ -309,3 +308,29 @@ class ReopenApplicationView(RecruiterRequiredMixin, View):
         else:
             messages.error(request, "Choose a stage and give a reason for reopening.")
         return redirect("careers:application", pk=pk)
+
+
+class AddNoteView(RecruiterRequiredMixin, View):
+    """Add a note, and send back the refreshed timeline."""
+
+    def post(self, request, pk):
+        application = get_object_or_404(
+            Application.objects.visible_to(request.user), pk=pk
+        )
+        form = NoteForm(request.POST)
+        if form.is_valid():
+            application.add_note(request.user, form.cleaned_data["body"])
+            form = NoteForm()
+        if "HX-Request" not in request.headers:
+            if form.errors:
+                messages.error(request, "Write a note of 2,000 characters or fewer.")
+            return redirect("careers:application", pk=pk)
+        return render(
+            request,
+            "careers/partials/_timeline.html",
+            {
+                "application": application,
+                "timeline": application.timeline(),
+                "note_form": form,
+            },
+        )

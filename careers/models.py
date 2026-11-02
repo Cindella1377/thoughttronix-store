@@ -232,6 +232,20 @@ class Application(models.Model):
         """The applicant's label for this application's stage."""
         return PUBLIC_STATUSES[self.stage.kind]
 
+    def timeline(self):
+        """Stage moves and notes together, oldest first."""
+        entries = [
+            *self.stage_changes.select_related("from_stage", "to_stage", "changed_by"),
+            *self.notes.select_related("author"),
+        ]
+        return sorted(entries, key=lambda entry: entry.created_at)
+
+    def add_note(self, author, body, now=None):
+        """Add a recruiter's note. Notes are never edited or deleted."""
+        return self.notes.create(
+            author=author, body=body, created_at=now or timezone.now()
+        )
+
     def can_download_resume(self, user):
         """True for the applicant and for anyone who can recruit."""
         if not self.resume or not user.is_authenticated:
@@ -269,3 +283,26 @@ class StageChange(models.Model):
 
     def __str__(self):
         return f"{self.application}: {self.to_stage}"
+
+
+class Note(models.Model):
+    """A recruiter's remark. Staff only, and rows are only ever added."""
+
+    application = models.ForeignKey(
+        Application, on_delete=models.CASCADE, related_name="notes"
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    body = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+    def __str__(self):
+        return f"Note on {self.application}"

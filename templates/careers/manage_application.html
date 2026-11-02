@@ -58,23 +58,6 @@
       </div>
     </div>
 
-    <div class="card bg-base-100 shadow-md">
-      <div class="card-body">
-        <h2 class="card-title">Timeline</h2>
-        <ul class="mt-2 space-y-3">
-          {% for change in stage_changes %}
-            <li>
-              <p class="font-semibold">
-                {% if change.from_stage %}{{ change.from_stage.name }} → {{ change.to_stage.name }}{% else %}Applied to {{ change.to_stage.name }}{% endif %}
-              </p>
-              <p class="text-xs opacity-60">
-                {{ change.created_at|date:"M j, Y, g:i a" }}{% if change.changed_by %} · {{ change.changed_by.display_name }}{% endif %}
-              </p>
-              {% if change.note %}<p class="mt-1 text-sm">{{ change.note }}</p>{% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
+    {% include "careers/partials/_timeline.html" %}
   </div>
 {% endblock %}

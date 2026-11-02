@@ -55,4 +55,9 @@ urlpatterns = [
         views.ReopenApplicationView.as_view(),
         name="reopen",
     ),
+    path(
+        "backoffice/careers/applications/<int:pk>/notes/",
+        views.AddNoteView.as_view(),
+        name="note",
+    ),
 ]

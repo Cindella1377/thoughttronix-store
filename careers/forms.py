@@ -2,11 +2,14 @@ from django import forms
 
 from products.forms import StyledModelForm
 
-from .models import Application, Job, Stage
+from .models import Application, Job, Note, Stage
 
 # The largest résumé an applicant may upload.
 MAX_RESUME_MB = 5
 MAX_RESUME_BYTES = MAX_RESUME_MB * 1024 * 1024
+
+# The longest note a recruiter may add.
+MAX_NOTE_LENGTH = 2000
 
 
 class JobForm(StyledModelForm):
@@ -92,3 +95,18 @@ class ReopenForm(forms.Form):
 
     stage = forms.ModelChoiceField(queryset=Stage.objects.reopenable())
     reason = forms.CharField()
+
+
+class NoteForm(StyledModelForm):
+    """A recruiter's note on an application."""
+
+    body = forms.CharField(
+        label="Add a note",
+        max_length=MAX_NOTE_LENGTH,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Visible to the hiring team. Notes can't be edited or deleted.",
+    )
+
+    class Meta:
+        model = Note
+        fields = ["body"]
