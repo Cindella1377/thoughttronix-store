@@ -4,6 +4,7 @@
       class="flex flex-wrap items-center gap-2">
   {% csrf_token %}
   {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
+  {% if on_board %}<input type="hidden" name="board" value="1" />{% endif %}
   <select name="stage" aria-label="Move to" class="select select-sm w-auto">
     {% for stage in stages %}
       {% if stage.pk != application.stage_id %}

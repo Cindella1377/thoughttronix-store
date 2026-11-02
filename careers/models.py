@@ -333,6 +333,33 @@ class StageChange(models.Model):
         return f"{self.application}: {self.to_stage}"
 
 
+def build_board(job, viewer):
+    """One job's pipeline as ``viewer`` may see it.
+
+    One column per active stage. Open applications are cards; closed
+    ones are only counted, so the board stays about the work in hand.
+    """
+    applications = list(
+        job.applications.visible_to(viewer).select_related("user", "stage")
+    )
+    columns = []
+    for stage in Stage.objects.filter(is_active=True):
+        held = [a for a in applications if a.stage_id == stage.pk]
+        cards = [a for a in held if a.is_open]
+        columns.append(
+            {
+                "stage": stage,
+                "applications": cards,
+                "count": len(cards) if stage.is_open else len(held),
+            }
+        )
+    return {
+        "columns": columns,
+        "total": len(applications),
+        "closed": sum(not a.is_open for a in applications),
+    }
+
+
 class Note(models.Model):
     """A recruiter's remark. Staff only, and rows are only ever added."""
 

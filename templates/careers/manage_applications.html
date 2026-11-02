@@ -10,6 +10,8 @@
     </ul>
   </div>
 
+  {% include "careers/partials/_view_toggle.html" with view="table" %}
+
   <div class="mb-4 flex flex-wrap gap-2">
     <a href="{% url 'careers:manage_applications' job.pk %}"
        class="btn btn-xs {% if not current_stage %}btn-primary{% else %}btn-ghost{% endif %}">All</a>

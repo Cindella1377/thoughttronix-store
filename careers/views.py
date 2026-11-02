@@ -13,13 +13,14 @@ from django.views.generic import (
     DetailView,
     FormView,
     ListView,
+    TemplateView,
     UpdateView,
 )
 
 from accounts.mixins import RecruiterRequiredMixin
 
 from .forms import JobForm, MoveForm, NoteForm, ReopenForm, ResumeForm, StageForm
-from .models import Application, Job, Stage
+from .models import Application, Job, Stage, build_board
 from .services import (
     ApplicationError,
     move_application,
@@ -239,8 +240,37 @@ class ManageApplicationDetailView(RecruiterRequiredMixin, DetailView):
         )
 
 
+def board_context(job, user, error=None):
+    """What the board partial needs, for the page and for a move."""
+    return {
+        "job": job,
+        "board": build_board(job, user),
+        "board_url": reverse("careers:board", args=[job.pk]),
+        "stages": Stage.objects.movable(),
+        "error": error,
+    }
+
+
+class BoardView(RecruiterRequiredMixin, TemplateView):
+    """One job's applications as columns of cards."""
+
+    template_name = "careers/board.html"
+    extra_context = {"section": "careers"}
+
+    def get_context_data(self, **kwargs):
+        job = get_object_or_404(Job, pk=self.kwargs["pk"])
+        return super().get_context_data(
+            **board_context(job, self.request.user), **kwargs
+        )
+
+
 class MoveApplicationView(RecruiterRequiredMixin, View):
-    """Move one application, then go back where the recruiter came from."""
+    """Move one application, from the table, the page, or the board.
+
+    A move to Hired or Rejected asks first. A board move sends back the
+    whole board, so its card and counts change together; any other move
+    returns to where the recruiter came from.
+    """
 
     def post(self, request, pk):
         application = get_object_or_404(
@@ -248,11 +278,14 @@ class MoveApplicationView(RecruiterRequiredMixin, View):
         )
         form = MoveForm(request.POST)
         is_htmx = "HX-Request" in request.headers
+        on_board = is_htmx and "board" in request.POST
         next_url = request.POST.get("next", "")
         if not url_has_allowed_host_and_scheme(
             next_url, allowed_hosts={request.get_host()}
         ):
             next_url = reverse("careers:application", args=[pk])
+        error = None
+        success = None
         if form.is_valid():
             stage = form.cleaned_data["stage"]
             if stage.emails_applicant and "confirmed" not in request.POST:
@@ -265,6 +298,7 @@ class MoveApplicationView(RecruiterRequiredMixin, View):
                         "stage": stage,
                         "note": form.cleaned_data["note"],
                         "back": next_url,
+                        "on_board": on_board,
                         "section": "careers",
                     },
                 )
@@ -275,12 +309,25 @@ class MoveApplicationView(RecruiterRequiredMixin, View):
                     request.user,
                     note=form.cleaned_data["note"],
                 )
-            except ApplicationError as error:
-                messages.error(request, str(error))
+            except ApplicationError as caught:
+                error = str(caught)
             else:
-                messages.success(request, f"Moved to {stage.name}.")
+                success = f"Moved to {stage.name}."
         else:
-            messages.error(request, "Choose a stage to move to.")
+            error = "Choose a stage to move to."
+        if on_board:
+            response = render(
+                request,
+                "careers/partials/_board.html",
+                board_context(application.job, request.user, error=error),
+            )
+            response["HX-Retarget"] = "#board"
+            response["HX-Reswap"] = "outerHTML"
+            return response
+        if error:
+            messages.error(request, error)
+        else:
+            messages.success(request, success)
         if is_htmx:
             return HttpResponse(headers={"HX-Redirect": next_url})
         return redirect(next_url)

@@ -41,6 +41,11 @@ urlpatterns = [
         name="manage_applications",
     ),
     path(
+        "backoffice/careers/jobs/<int:pk>/board/",
+        views.BoardView.as_view(),
+        name="board",
+    ),
+    path(
         "backoffice/careers/applications/<int:pk>/",
         views.ManageApplicationDetailView.as_view(),
         name="application",

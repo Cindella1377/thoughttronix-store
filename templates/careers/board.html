@@ -1,0 +1,15 @@
+{% extends "backoffice/base.html" %}
+
+{% block title %}{{ job.title }} board — Back office{% endblock %}
+
+{% block backoffice %}
+  <div class="breadcrumbs mb-4 text-sm">
+    <ul>
+      <li><a href="{% url 'careers:manage_jobs' %}">Jobs</a></li>
+      <li>{{ job.title }}</li>
+    </ul>
+  </div>
+
+  {% include "careers/partials/_view_toggle.html" with view="board" %}
+  {% include "careers/partials/_board.html" %}
+{% endblock %}
