@@ -1,0 +1,1 @@
+You withdrew your application for {{ job.title }}

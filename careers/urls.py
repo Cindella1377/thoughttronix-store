@@ -12,6 +12,11 @@ urlpatterns = [
         name="applications",
     ),
     path(
+        "careers/applications/<int:pk>/withdraw/",
+        views.WithdrawView.as_view(),
+        name="withdraw",
+    ),
+    path(
         "careers/applications/<int:pk>/resume/",
         views.ResumeDownloadView.as_view(),
         name="resume",
@@ -44,5 +49,10 @@ urlpatterns = [
         "backoffice/careers/applications/<int:pk>/move/",
         views.MoveApplicationView.as_view(),
         name="move",
+    ),
+    path(
+        "backoffice/careers/applications/<int:pk>/reopen/",
+        views.ReopenApplicationView.as_view(),
+        name="reopen",
     ),
 ]

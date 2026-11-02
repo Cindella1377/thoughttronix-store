@@ -21,6 +21,7 @@ from .models import Application, Job, Stage, StageChange
 CLOSING_EMAILS = {
     Stage.Kind.HIRED: "successful",
     Stage.Kind.REJECTED: "not_moving_forward",
+    Stage.Kind.WITHDRAWN: "withdrawn",
 }
 
 
@@ -52,6 +53,41 @@ def _email_applicant(application: Application, name: str) -> None:
             recipient_list=[context["user"].email],
         ),
         robust=True,
+    )
+
+
+def _lock(application: Application) -> Application:
+    """The saved row, locked for this transaction.
+
+    Rules read this rather than the caller's copy, so a stale page can't
+    act on an application that has since changed.
+    """
+    return (
+        Application.objects.select_for_update(of=("self",))
+        .select_related("stage")
+        .get(pk=application.pk)
+    )
+
+
+def _record_move(
+    application: Application,
+    stage: Stage,
+    by: AbstractBaseUser,
+    note: str,
+    now: datetime.datetime,
+) -> None:
+    """Change the stage and write its log row. Call inside a transaction."""
+    from_stage = application.stage
+    application.stage = stage
+    application.closed_at = None if stage.is_open else now
+    application.save(update_fields=["stage", "closed_at"])
+    StageChange.objects.create(
+        application=application,
+        from_stage=from_stage,
+        to_stage=stage,
+        changed_by=by,
+        note=note,
+        created_at=now,
     )
 
 
@@ -111,9 +147,7 @@ def move_application(
     but Withdrawn. A stage that isn't open closes the application, and
     only that: the job, other applications, and the user are untouched.
     A move to Hired or Rejected emails the applicant after it commits.
-    Nobody may move their own application. The rules read the saved row,
-    locked, so a stale page can't move what has since closed. Returns the
-    fresh application.
+    Nobody may move their own application. Returns the fresh application.
     """
     now = now or timezone.now()
     if not by.can_recruit:
@@ -125,28 +159,73 @@ def move_application(
     if stage.kind == Stage.Kind.WITHDRAWN:
         raise ApplicationError("Only the applicant can withdraw an application.")
     with transaction.atomic():
-        current = (
-            Application.objects.select_for_update(of=("self",))
-            .select_related("stage")
-            .get(pk=application.pk)
-        )
+        current = _lock(application)
         if not current.is_open:
             raise ApplicationError("This application is closed.")
         if current.stage == stage:
             raise ApplicationError(f"This application is already in {stage.name}.")
-        from_stage = current.stage
-        current.stage = stage
-        if not stage.is_open:
-            current.closed_at = now
-        current.save(update_fields=["stage", "closed_at"])
-        StageChange.objects.create(
-            application=current,
-            from_stage=from_stage,
-            to_stage=stage,
-            changed_by=by,
-            note=note,
-            created_at=now,
-        )
+        _record_move(current, stage, by, note, now)
         if stage.emails_applicant:
             _email_applicant(current, CLOSING_EMAILS[stage.kind])
+    return current
+
+
+def reopen_application(
+    application: Application,
+    stage: Stage,
+    reason: str,
+    by: AbstractBaseUser,
+    now: datetime.datetime | None = None,
+) -> Application:
+    """Bring a closed application back to an In progress stage.
+
+    The deliberate way to undo Hired, Rejected, or Withdrawn. ``reason``
+    is required and kept on the log, for staff only. Sends no email: the
+    recruiter contacts the applicant themselves. A Closed job doesn't
+    block it, but an anonymized application can't return, because its
+    résumé and owner are gone. Returns the fresh application.
+    """
+    now = now or timezone.now()
+    reason = reason.strip()
+    if not by.can_recruit:
+        raise ApplicationError("Only the hiring team can reopen applications.")
+    if application.user_id == by.pk:
+        raise ApplicationError("You can't reopen your own application.")
+    if not reason:
+        raise ApplicationError("Give a reason for reopening.")
+    if not stage.is_active:
+        raise ApplicationError("That stage has been retired.")
+    if stage.kind != Stage.Kind.IN_PROGRESS:
+        raise ApplicationError("Reopen into an in-progress stage.")
+    with transaction.atomic():
+        current = _lock(application)
+        if current.anonymized_at is not None:
+            raise ApplicationError("An anonymized application can't be reopened.")
+        if current.is_open:
+            raise ApplicationError("This application is already open.")
+        _record_move(current, stage, by, reason, now)
+    return current
+
+
+def withdraw_application(
+    application: Application,
+    by: AbstractBaseUser,
+    now: datetime.datetime | None = None,
+) -> Application:
+    """Close an open application at its applicant's request.
+
+    Only the applicant may do this. The log shows them as the actor, and
+    they get a confirmation email after it commits. Staff can bring it
+    back with ``reopen_application``. Returns the fresh application.
+    """
+    now = now or timezone.now()
+    if application.user_id != by.pk:
+        raise ApplicationError("Only the applicant can withdraw an application.")
+    with transaction.atomic():
+        current = _lock(application)
+        if not current.is_open:
+            raise ApplicationError("This application is closed.")
+        stage = Stage.objects.withdrawn()
+        _record_move(current, stage, by, "", now)
+        _email_applicant(current, CLOSING_EMAILS[stage.kind])
     return current

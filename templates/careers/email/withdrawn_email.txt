@@ -1,0 +1,9 @@
+{% autoescape off %}Hello {{ user.get_username }},
+
+Your application for {{ job.title }} has a new status: {{ status }}. There is nothing more you need to do.
+
+If you change your mind, email the hiring team at {{ careers_email }}.
+
+ThoughtTronix
+Your Thoughts, Our Business.
+{% endautoescape %}

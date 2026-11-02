@@ -29,6 +29,20 @@
           </div>
         {% endif %}
 
+        {% if application.can_reopen %}
+          <form method="post" action="{% url 'careers:reopen' application.pk %}" class="mt-4 space-y-2">
+            {% csrf_token %}
+            <select name="stage" aria-label="Reopen into" class="select select-sm w-full">
+              {% for stage in reopen_stages %}
+                <option value="{{ stage.pk }}">{{ stage.name }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="reason" aria-label="Reason" placeholder="Reason for reopening"
+                   required class="input input-sm w-full" />
+            <button type="submit" class="btn btn-outline btn-sm">Reopen</button>
+          </form>
+        {% endif %}
+
         {% if application.resume %}
           <div class="card-actions mt-4">
             <a href="{% url 'careers:resume' application.pk %}" class="btn btn-outline btn-sm">Download résumé</a>

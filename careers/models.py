@@ -109,6 +109,14 @@ class StageQuerySet(models.QuerySet):
         applicant's own act."""
         return self.filter(is_active=True).exclude(kind=Stage.Kind.WITHDRAWN)
 
+    def reopenable(self):
+        """Stages a closed application may come back to."""
+        return self.filter(is_active=True, kind=Stage.Kind.IN_PROGRESS)
+
+    def withdrawn(self):
+        """The one active stage a withdrawal lands in."""
+        return self.get(kind=Stage.Kind.WITHDRAWN, is_active=True)
+
 
 class Stage(models.Model):
     """A hiring stage. Staff own the name; the code reads only ``kind``."""
@@ -208,6 +216,11 @@ class Application(models.Model):
     @property
     def is_open(self):
         return self.stage.is_open
+
+    @property
+    def can_reopen(self):
+        """Closed, and not anonymized: its résumé and owner must remain."""
+        return not self.is_open and self.anonymized_at is None
 
     @property
     def applicant_name(self):

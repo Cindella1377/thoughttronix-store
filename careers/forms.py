@@ -85,3 +85,10 @@ class MoveForm(forms.Form):
 
     stage = forms.ModelChoiceField(queryset=Stage.objects.movable())
     note = forms.CharField(required=False)
+
+
+class ReopenForm(forms.Form):
+    """Where a closed application returns to, and why."""
+
+    stage = forms.ModelChoiceField(queryset=Stage.objects.reopenable())
+    reason = forms.CharField()

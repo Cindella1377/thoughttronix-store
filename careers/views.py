@@ -17,9 +17,15 @@ from django.views.generic import (
 
 from accounts.mixins import RecruiterRequiredMixin
 
-from .forms import JobForm, MoveForm, ResumeForm
+from .forms import JobForm, MoveForm, ReopenForm, ResumeForm
 from .models import Application, Job, Stage
-from .services import ApplicationError, move_application, submit_application
+from .services import (
+    ApplicationError,
+    move_application,
+    reopen_application,
+    submit_application,
+    withdraw_application,
+)
 
 
 class JobListView(ListView):
@@ -104,6 +110,32 @@ class ApplicationListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(careers_email=settings.CAREERS_EMAIL, **kwargs)
+
+
+class WithdrawView(LoginRequiredMixin, View):
+    """An applicant withdraws, after a page saying what that means."""
+
+    def get_application(self, request, pk):
+        return get_object_or_404(Application.objects.for_applicant(request.user), pk=pk)
+
+    def get(self, request, pk):
+        return render(
+            request,
+            "careers/confirm_withdraw.html",
+            {
+                "application": self.get_application(request, pk),
+                "careers_email": settings.CAREERS_EMAIL,
+            },
+        )
+
+    def post(self, request, pk):
+        try:
+            withdraw_application(self.get_application(request, pk), request.user)
+        except ApplicationError as error:
+            messages.error(request, str(error))
+        else:
+            messages.success(request, "Your application has been withdrawn.")
+        return redirect("careers:applications")
 
 
 class ResumeDownloadView(View):
@@ -199,6 +231,7 @@ class ManageApplicationDetailView(RecruiterRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         return super().get_context_data(
             stages=Stage.objects.movable(),
+            reopen_stages=Stage.objects.reopenable(),
             stage_changes=self.object.stage_changes.select_related(
                 "from_stage", "to_stage", "changed_by"
             ),
@@ -251,3 +284,28 @@ class MoveApplicationView(RecruiterRequiredMixin, View):
         if is_htmx:
             return HttpResponse(headers={"HX-Redirect": next_url})
         return redirect(next_url)
+
+
+class ReopenApplicationView(RecruiterRequiredMixin, View):
+    """Bring a closed application back, with a written reason."""
+
+    def post(self, request, pk):
+        application = get_object_or_404(
+            Application.objects.visible_to(request.user), pk=pk
+        )
+        form = ReopenForm(request.POST)
+        if form.is_valid():
+            try:
+                reopen_application(
+                    application,
+                    form.cleaned_data["stage"],
+                    form.cleaned_data["reason"],
+                    request.user,
+                )
+            except ApplicationError as error:
+                messages.error(request, str(error))
+            else:
+                messages.success(request, "Application reopened.")
+        else:
+            messages.error(request, "Choose a stage and give a reason for reopening.")
+        return redirect("careers:application", pk=pk)
