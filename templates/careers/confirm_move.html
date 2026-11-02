@@ -1,0 +1,13 @@
+{% extends "backoffice/base.html" %}
+
+{% block title %}Confirm move — Back office{% endblock %}
+
+{# The same confirm step for a browser without HTMX. #}
+{% block backoffice %}
+  <div class="card mx-auto max-w-md bg-base-100 shadow-md">
+    <div class="card-body">
+      <h2 class="card-title">{{ application.applicant_name }}</h2>
+      {% include "careers/partials/_confirm_move.html" %}
+    </div>
+  </div>
+{% endblock %}

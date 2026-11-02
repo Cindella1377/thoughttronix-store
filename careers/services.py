@@ -7,16 +7,52 @@ raises ``ApplicationError`` with a message fit to show the person.
 
 import datetime
 
+from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.core.files.uploadedfile import UploadedFile
+from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .models import Application, Job, Stage, StageChange
 
+# The email each closing kind sends, named for its templates.
+CLOSING_EMAILS = {
+    Stage.Kind.HIRED: "successful",
+    Stage.Kind.REJECTED: "not_moving_forward",
+}
+
 
 class ApplicationError(Exception):
     """A hiring rule refused the request."""
+
+
+def _email_applicant(application: Application, name: str) -> None:
+    """Send the ``name`` email once the current transaction commits.
+
+    An email can't be recalled, so it waits until the save has succeeded.
+    ``robust`` logs a mail failure instead of raising it: by then the
+    change is saved and must stand. The context holds the public label
+    only, never a stage name or a note.
+    """
+    context = {
+        "user": application.user,
+        "job": application.job,
+        "status": application.public_status,
+        "careers_email": settings.CAREERS_EMAIL,
+    }
+    transaction.on_commit(
+        lambda: send_mail(
+            subject=render_to_string(
+                f"careers/email/{name}_subject.txt", context
+            ).strip(),
+            message=render_to_string(f"careers/email/{name}_email.txt", context),
+            from_email=None,
+            recipient_list=[context["user"].email],
+        ),
+        robust=True,
+    )
 
 
 def submit_application(
@@ -32,6 +68,7 @@ def submit_application(
     timeline starts here. The job must be Open. A second application to
     the same job, such as from a double-click, is caught by the database
     constraint and reported as already applied, and its file is removed.
+    Emails the applicant once the application is saved.
     """
     if not job.is_open:
         raise ApplicationError("This job is no longer accepting applications.")
@@ -54,6 +91,7 @@ def submit_application(
                 changed_by=user,
                 created_at=now,
             )
+            _email_applicant(application, "received")
     except IntegrityError as error:
         application.resume.delete(save=False)
         raise ApplicationError("You've already applied to this job.") from error
@@ -72,6 +110,7 @@ def move_application(
     Staff may go forward, backward, or skip ahead, to any active stage
     but Withdrawn. A stage that isn't open closes the application, and
     only that: the job, other applications, and the user are untouched.
+    A move to Hired or Rejected emails the applicant after it commits.
     Nobody may move their own application. The rules read the saved row,
     locked, so a stale page can't move what has since closed. Returns the
     fresh application.
@@ -108,4 +147,6 @@ def move_application(
             note=note,
             created_at=now,
         )
+        if stage.emails_applicant:
+            _email_applicant(current, CLOSING_EMAILS[stage.kind])
     return current

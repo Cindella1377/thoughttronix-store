@@ -1,0 +1,13 @@
+{# Replaces the move form before a move that emails the applicant. #}
+<form method="post" action="{% url 'careers:move' application.pk %}" class="space-y-2">
+  {% csrf_token %}
+  <input type="hidden" name="stage" value="{{ stage.pk }}" />
+  <input type="hidden" name="note" value="{{ note }}" />
+  <input type="hidden" name="next" value="{{ back }}" />
+  <input type="hidden" name="confirmed" value="1" />
+  <p class="text-sm">Move to {{ stage.name }}? This will email the applicant.</p>
+  <div class="flex flex-wrap items-center gap-2">
+    <button type="submit" class="btn btn-primary btn-sm">Yes, move and email</button>
+    <a href="{{ back }}" class="btn btn-ghost btn-sm">Keep it</a>
+  </div>
+</form>

@@ -6,7 +6,6 @@ from http import HTTPStatus
 import pytest
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.core import mail
 from django.urls import reverse
 
 from .models import Application, Job, Stage, StageChange
@@ -228,14 +227,6 @@ def test_a_recruiter_cannot_move_their_own_application(
 
     with pytest.raises(ApplicationError, match="your own"):
         move_application(application, stage(Stage.Kind.HIRED), recruiter)
-
-
-def test_moves_send_no_email_yet(recruiter, application):
-    mail.outbox.clear()
-
-    move_application(application, stage(Stage.Kind.HIRED), recruiter)
-
-    assert mail.outbox == []
 
 
 def test_hiring_changes_nothing_else(

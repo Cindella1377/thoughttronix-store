@@ -2,8 +2,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.http import FileResponse, Http404
-from django.shortcuts import get_object_or_404, redirect
+from django.http import FileResponse, Http404, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
@@ -214,25 +214,40 @@ class MoveApplicationView(RecruiterRequiredMixin, View):
             Application.objects.visible_to(request.user), pk=pk
         )
         form = MoveForm(request.POST)
+        is_htmx = "HX-Request" in request.headers
+        next_url = request.POST.get("next", "")
+        if not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}
+        ):
+            next_url = reverse("careers:application", args=[pk])
         if form.is_valid():
+            stage = form.cleaned_data["stage"]
+            if stage.emails_applicant and "confirmed" not in request.POST:
+                partial = "careers/partials/_confirm_move.html"
+                return render(
+                    request,
+                    partial if is_htmx else "careers/confirm_move.html",
+                    {
+                        "application": application,
+                        "stage": stage,
+                        "note": form.cleaned_data["note"],
+                        "back": next_url,
+                        "section": "careers",
+                    },
+                )
             try:
                 move_application(
                     application,
-                    form.cleaned_data["stage"],
+                    stage,
                     request.user,
                     note=form.cleaned_data["note"],
                 )
             except ApplicationError as error:
                 messages.error(request, str(error))
             else:
-                messages.success(
-                    request, f"Moved to {form.cleaned_data['stage'].name}."
-                )
+                messages.success(request, f"Moved to {stage.name}.")
         else:
             messages.error(request, "Choose a stage to move to.")
-        next_url = request.POST.get("next", "")
-        if url_has_allowed_host_and_scheme(
-            next_url, allowed_hosts={request.get_host()}
-        ):
-            return redirect(next_url)
-        return redirect(reverse("careers:application", args=[pk]))
+        if is_htmx:
+            return HttpResponse(headers={"HX-Redirect": next_url})
+        return redirect(next_url)

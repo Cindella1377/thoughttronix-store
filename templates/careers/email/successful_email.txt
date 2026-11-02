@@ -1,0 +1,11 @@
+{% autoescape off %}Hello {{ user.get_username }},
+
+Your application for {{ job.title }} has a new status: {{ status }}.
+
+The hiring team will be in touch about what happens next.
+
+Questions? Email the hiring team at {{ careers_email }}.
+
+ThoughtTronix
+Your Thoughts, Our Business.
+{% endautoescape %}

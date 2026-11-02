@@ -138,6 +138,12 @@ class Stage(models.Model):
         """Whether an application here is still in progress."""
         return self.kind in (self.Kind.ENTRY, self.Kind.IN_PROGRESS)
 
+    @property
+    def emails_applicant(self):
+        """Whether a recruiter's move here sends an email. It can't be
+        recalled, so staff are warned first."""
+        return self.kind in (self.Kind.HIRED, self.Kind.REJECTED)
+
 
 # What an applicant sees. Stage names are for staff and never reach them.
 PUBLIC_STATUSES = {
