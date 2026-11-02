@@ -8,6 +8,8 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
 - `uv run python manage.py migrate` — apply migrations
 - `uv run python manage.py seed` — reset the database to the demo world
   (destructive, idempotent)
+- `uv run python manage.py purge_applications` — anonymize applications
+  closed for 12 months (nothing schedules it; run it, or schedule it)
 - `uv run python manage.py tailwind runserver` — dev server + Tailwind watch
 - `uv run python manage.py tailwind build` — compile production CSS
 - `uv run pytest` — run the test suite

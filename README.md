@@ -30,6 +30,7 @@ The `seed` command creates a fixed demo world — the same one every run:
 | ---------- | ------------- | ------------------------------------------------------------- |
 | `admin`    | `admin123`    | Superuser: everything below, plus the Django admin at `/admin/` |
 | `employee` | `employee123` | Staff: the back office (products, orders, coupons, dashboard)  |
+| `recruiter` | `recruiter123` | Staff who can recruit: everything `employee` has, plus Careers |
 | `customer` | `customer123` | A customer with order history and a live cart                  |
 
 Each demo login's email is `<username>@example.com`.
@@ -77,6 +78,7 @@ Staff manage coupons in the back office's Coupons tab.
 | `uv sync`                                    | Install dependencies                     |
 | `uv run python manage.py migrate`            | Apply database migrations                |
 | `uv run python manage.py seed`               | Reset the database to the demo world (destructive, idempotent) |
+| `uv run python manage.py purge_applications` | Anonymize applications closed for 12 months |
 | `uv run python manage.py tailwind runserver` | Dev server + Tailwind watch              |
 | `uv run python manage.py tailwind build`     | Compile production CSS                   |
 | `uv run pytest`                              | Run the test suite                       |

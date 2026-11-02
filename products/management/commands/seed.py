@@ -8,6 +8,7 @@ Demo logins (documented in the README):
 
     admin / admin123        superuser
     employee / employee123  staff, "Junior Thought Curator"
+    recruiter / recruiter123  staff who can recruit: the Careers tab
     customer / customer123  a plain customer, with order history and a live cart
 
 The live cart holds the expired THOUGHTS10, so the coupon swap and its
@@ -17,6 +18,12 @@ Every demo login has an empty "My Wishlist" as its main list. Sample
 lists, badged "Sample list", show each sharing state: 'customer' has a
 public "Birthday" and a link-shared "Gift ideas"; 'employee' has a public
 "Staff picks".
+
+Careers has jobs in all three statuses and applications in every kind of
+stage, built through the same services the app uses. 'customer' has none,
+so they can apply. 'employee' cannot recruit; 'recruiter' can, which shows
+the difference. Hiring data is wiped with everything else, and the default
+stages come back.
 """
 
 import random
@@ -28,11 +35,21 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files import File
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.test import override_settings
 from django.utils import timezone
 from django.utils.text import slugify
 
+from careers.models import Application, Job, Stage
+from careers.services import (
+    anonymize_application,
+    move_application,
+    reopen_application,
+    submit_application,
+    withdraw_application,
+)
 from orders.models import Cart, Coupon, Order, OrderItem
 from products.models import Category, Product, Tag
 from wishlists.models import Wishlist
@@ -483,6 +500,16 @@ DEMO_USERS = [
         "Junior Thought Curator",
     ),
     (
+        "recruiter",
+        "recruiter123",
+        "recruiter@example.com",
+        "Rowan",
+        "Vale",
+        True,
+        False,
+        "Talent Thought Partner",
+    ),
+    (
         "customer",
         "customer123",
         "customer@example.com",
@@ -493,6 +520,9 @@ DEMO_USERS = [
         None,
     ),
 ]
+
+# The demo logins who can recruit. ``admin`` already can, as a superuser.
+DEMO_RECRUITERS = {"recruiter"}
 
 # Background customers flesh out the demo world; they get order history in
 # Phase 5. They have no documented password and cannot log in.
@@ -506,6 +536,170 @@ BACKGROUND_CUSTOMERS = [
     ("snakamura", "Sora", "Nakamura"),
     ("bcrane", "Beverly", "Crane"),
     ("rmalik", "Rafi", "Malik"),
+]
+
+# The same list as the careers migration, which can't share a constant. A
+# test keeps them in step.
+DEFAULT_STAGES = [
+    ("Applied", "entry"),
+    ("Screening", "in_progress"),
+    ("Interview", "in_progress"),
+    ("Offer", "in_progress"),
+    ("Hired", "hired"),
+    ("Rejected", "rejected"),
+    ("Withdrawn", "withdrawn"),
+]
+
+CAREER_JOBS = [
+    # (title, department, location, type, salary, status, days ago, description)
+    (
+        "Junior Thought Curator",
+        "Curation",
+        "Remote",
+        Job.EmploymentType.FULL_TIME,
+        "$58,000–$72,000",
+        Job.Status.OPEN,
+        90,
+        "Sort the world's passing thoughts into tidy, sellable shelves.\n\n"
+        "You'll tag, weed, and gently correct what our devices overhear. "
+        "Discretion is required. So is forgetting.",
+    ),
+    (
+        "Seraphine Listening Engineer",
+        "Hardware",
+        "Austin, TX",
+        Job.EmploymentType.FULL_TIME,
+        "$120,000–$150,000",
+        Job.Status.OPEN,
+        60,
+        "Help the seven-microphone array hear what people meant, not what "
+        "they said.\n\nYou should enjoy signal processing and be at peace "
+        "with being overheard.",
+    ),
+    (
+        "Recall Coordinator",
+        "Trust & Safety",
+        "On site",
+        Job.EmploymentType.CONTRACT,
+        "",
+        Job.Status.OPEN,
+        45,
+        "Coordinate the return of products that have started having opinions."
+        "\n\nCalm voice and a current tetanus shot preferred.",
+    ),
+    (
+        "Dream Archivist Intern",
+        "Curation",
+        "Remote",
+        Job.EmploymentType.INTERNSHIP,
+        "",
+        Job.Status.DRAFT,
+        5,
+        "Catalog what DreamWeaver owners leave behind each morning.",
+    ),
+    (
+        "Head of Plausible Deniability",
+        "Legal",
+        "Undisclosed",
+        Job.EmploymentType.FULL_TIME,
+        "$210,000",
+        Job.Status.CLOSED,
+        500,
+        "We can neither confirm nor deny this role exists.",
+    ),
+]
+
+CAREER_APPLICATIONS = [
+    # (job, username, days ago, cover letter, steps), each step being
+    # (action, stage or None, days after applying, note or reason)
+    (
+        "Junior Thought Curator",
+        "mwren",
+        2,
+        "I have been thinking about this job for some time.",
+        [],
+    ),
+    (
+        "Junior Thought Curator",
+        "dcole",
+        20,
+        "",
+        [
+            ("move", "Screening", 2, "Portfolio looks tidy."),
+            ("note", None, 3, "Check references before the interview."),
+        ],
+    ),
+    (
+        "Junior Thought Curator",
+        "tokafor",
+        30,
+        "Shelving is my calling. Thoughts are just quieter books.",
+        [
+            ("move", "Screening", 1, ""),
+            ("move", "Interview", 6, "Strong phone screen."),
+            ("move", "Offer", 15, "The panel was unanimous."),
+        ],
+    ),
+    (
+        "Seraphine Listening Engineer",
+        "lvasquez",
+        50,
+        "I built my first microphone array out of spite.",
+        [
+            ("move", "Screening", 2, ""),
+            ("move", "Interview", 9, ""),
+            ("move", "Offer", 20, ""),
+            ("move", "Hired", 30, "Accepted. Starts next month."),
+        ],
+    ),
+    (
+        "Seraphine Listening Engineer",
+        "hpark",
+        40,
+        "",
+        [
+            ("move", "Screening", 3, ""),
+            ("move", "Rejected", 8, "Wants to stop being overheard."),
+        ],
+    ),
+    (
+        "Seraphine Listening Engineer",
+        "gfinch",
+        35,
+        "",
+        [
+            ("move", "Rejected", 2, ""),
+            ("reopen", "Interview", 4, "Rejected by mistake: wrong Gordon."),
+            ("note", None, 5, "Called to apologize."),
+        ],
+    ),
+    (
+        "Recall Coordinator",
+        "snakamura",
+        25,
+        "I have returned many things in my time.",
+        [
+            ("move", "Screening", 3, ""),
+            ("withdraw", None, 10, ""),
+        ],
+    ),
+    (
+        "Recall Coordinator",
+        "bcrane",
+        6,
+        "",
+        [("move", "Screening", 1, "")],
+    ),
+    (
+        "Head of Plausible Deniability",
+        "rmalik",
+        480,
+        "I was never here.",
+        [
+            ("move", "Rejected", 20, "Too forthcoming."),
+            ("anonymize", None, 400, ""),
+        ],
+    ),
 ]
 
 # The customer demo login's live cart: (product slug, quantity).
@@ -590,14 +784,46 @@ HOLIDAY_CODE = "HOLIDAY20"
 COUPON_ORDER_SHARE = 0.25
 
 
+def _resume_pdf(user):
+    """A one-page PDF that opens in a real viewer, so the demo download works."""
+    line = f"{user.first_name} {user.last_name} - demo resume".encode()
+    stream = b"BT /F1 18 Tf 72 720 Td (" + line + b") Tj ET"
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        b"<< /Length %d >>\nstream\n%s\nendstream" % (len(stream), stream),
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    pdf = b"%PDF-1.4\n"
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf += b"%d 0 obj\n%s\nendobj\n" % (number, body)
+    table = len(pdf)
+    pdf += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1)
+    for offset in offsets:
+        pdf += b"%010d 00000 n \n" % offset
+    pdf += b"trailer\n<< /Size %d /Root 1 0 R >>\n" % (len(objects) + 1)
+    return pdf + b"startxref\n%d\n%%%%EOF\n" % table
+
+
 class Command(BaseCommand):
     help = (
         "Wipe and rebuild the demo world: catalog, tags, demo accounts, "
         "coupons, orders, and sample wishlists."
     )
 
-    @transaction.atomic
     def handle(self, *args, **options):
+        # Sample applicants are fictional. Their emails go out when the
+        # transaction commits, so the override has to wrap all of it.
+        dummy = "django.core.mail.backends.dummy.EmailBackend"
+        with override_settings(EMAIL_BACKEND=dummy):
+            self._build()
+
+    @transaction.atomic
+    def _build(self):
         self._wipe()
         tags = self._create_tags()
         self._create_catalog(tags)
@@ -607,6 +833,7 @@ class Command(BaseCommand):
         self._create_customer_cart()
         self._create_orders()
         self._create_wishlists()
+        self._create_careers()
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -617,12 +844,17 @@ class Command(BaseCommand):
                 f"{Coupon.objects.count()} coupons, "
                 f"{Order.objects.count()} orders, "
                 f"{Wishlist.objects.filter(is_sample=True).count()} sample wishlists, "
+                f"{Job.objects.count()} jobs, "
+                f"{Application.objects.count()} applications, "
                 f"and a live cart for 'customer'."
             )
         )
 
     def _wipe(self):
         """Remove everything the seed owns; the rebuild starts from zero."""
+        Application.objects.all().delete()
+        Job.objects.all().delete()
+        Stage.objects.all().delete()
         Order.objects.all().delete()
         Cart.objects.all().delete()
         Coupon.objects.all().delete()
@@ -638,6 +870,7 @@ class Command(BaseCommand):
         # Product photos live on disk, not in the database; without this
         # every run would leave the last run's files behind.
         shutil.rmtree(Path(settings.MEDIA_ROOT) / "products", ignore_errors=True)
+        shutil.rmtree(Path(settings.PRIVATE_MEDIA_ROOT) / "resumes", ignore_errors=True)
 
     def _create_tags(self):
         return {
@@ -681,6 +914,7 @@ class Command(BaseCommand):
                 last_name=last,
                 is_staff=staff,
                 is_superuser=superuser,
+                is_recruiter=username in DEMO_RECRUITERS,
                 job_title=job,
             )
             user.set_password(password)
@@ -758,6 +992,77 @@ class Command(BaseCommand):
             # Each add lands on top, so add the bottom item first.
             for slug in reversed(slugs):
                 wishlist.add(Product.objects.get(slug=slug))
+
+    def _create_careers(self):
+        """Jobs, then applications built through the app's own services, so
+        every timeline is one the app could really have produced."""
+        now = timezone.now()
+        for position, (name, kind) in enumerate(DEFAULT_STAGES):
+            Stage.objects.create(name=name, kind=kind, position=position)
+
+        jobs = {}
+        for (
+            title,
+            department,
+            location,
+            kind,
+            salary,
+            status,
+            days,
+            text,
+        ) in CAREER_JOBS:
+            jobs[title] = Job.objects.create(
+                title=title,
+                slug=slugify(title),
+                description=text,
+                department=department,
+                location=location,
+                employment_type=kind,
+                salary_range=salary,
+                # Applications need an Open job, so closing comes last.
+                status=(
+                    Job.Status.DRAFT if status == Job.Status.DRAFT else Job.Status.OPEN
+                ),
+                published_at=(
+                    None if status == Job.Status.DRAFT else now - timedelta(days=days)
+                ),
+            )
+
+        User = get_user_model()
+        recruiter = User.objects.get(username="recruiter")
+        for title, username, days_ago, letter, steps in CAREER_APPLICATIONS:
+            user = User.objects.get(username=username)
+            applied_at = now - timedelta(days=days_ago)
+            application = submit_application(
+                jobs[title],
+                user,
+                SimpleUploadedFile(f"{username}.pdf", _resume_pdf(user)),
+                letter,
+                now=applied_at,
+            )
+            for action, stage_name, offset, text in steps:
+                at = applied_at + timedelta(days=offset)
+                stage = Stage.objects.filter(name=stage_name).first()
+                if action == "move":
+                    application = move_application(
+                        application, stage, recruiter, note=text, now=at
+                    )
+                elif action == "reopen":
+                    application = reopen_application(
+                        application, stage, text, recruiter, now=at
+                    )
+                elif action == "withdraw":
+                    application = withdraw_application(application, user, now=at)
+                elif action == "anonymize":
+                    application = anonymize_application(application, now=at)
+                else:
+                    application.add_note(recruiter, text, now=at)
+
+        for title, *_, status, _days, _text in CAREER_JOBS:
+            if status == Job.Status.CLOSED:
+                job = jobs[title]
+                job.change_status(Job.Status.CLOSED)
+                job.save(update_fields=["status"])
 
     def _create_orders(self):
         """Order history: 4 visible orders for 'customer', 48 background.
