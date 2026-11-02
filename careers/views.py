@@ -450,3 +450,20 @@ class StageRestoreView(RecruiterRequiredMixin, View):
         stage.restore()
         messages.success(request, f"“{stage.name}” restored.")
         return redirect("careers:stages")
+
+
+class ReportView(RecruiterRequiredMixin, TemplateView):
+    """Totals across hiring, with no names, and none of the viewer's own."""
+
+    template_name = "careers/reports.html"
+    extra_context = {"section": "careers"}
+
+    def get_context_data(self, **kwargs):
+        applications = Application.objects.visible_to(self.request.user)
+        return super().get_context_data(
+            jobs=applications.by_job(),
+            funnel=applications.funnel(),
+            outcomes=applications.outcomes(),
+            average_days_to_hire=applications.average_days_to_hire(),
+            **kwargs,
+        )

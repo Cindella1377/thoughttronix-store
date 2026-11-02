@@ -1,0 +1,80 @@
+{% extends "backoffice/base.html" %}
+
+{% block title %}Hiring report — Back office{% endblock %}
+
+{% block backoffice %}
+  <div class="breadcrumbs mb-4 text-sm">
+    <ul>
+      <li><a href="{% url 'careers:manage_jobs' %}">Jobs</a></li>
+      <li>Hiring report</li>
+    </ul>
+  </div>
+
+  {% if jobs %}
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <section class="card bg-base-100 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title">Funnel</h2>
+          <p class="text-sm opacity-70">Applications that ever reached each kind of stage.</p>
+          <table class="table">
+            <thead>
+              <tr><th>Kind</th><th class="text-right">Applications</th></tr>
+            </thead>
+            <tbody>
+              {% for row in funnel %}
+                <tr><td>{{ row.label }}</td><td class="text-right">{{ row.count }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card bg-base-100 shadow-md">
+        <div class="card-body">
+          <h2 class="card-title">Outcomes</h2>
+          <p class="text-sm opacity-70">Where applications stand today.</p>
+          <table class="table">
+            <tbody>
+              <tr><td>Hired</td><td class="text-right">{{ outcomes.hired }}</td></tr>
+              <tr><td>Rejected</td><td class="text-right">{{ outcomes.rejected }}</td></tr>
+              <tr><td>Withdrawn</td><td class="text-right">{{ outcomes.withdrawn }}</td></tr>
+              <tr>
+                <td>Average days to hire</td>
+                <td class="text-right">{% if average_days_to_hire is None %}—{% else %}{{ average_days_to_hire|floatformat:1 }}{% endif %}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section class="mt-6 overflow-x-auto rounded-box bg-base-100 shadow-md">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Job</th>
+            <th class="text-right">Applications</th>
+            <th class="text-right">Open</th>
+            <th class="text-right">Hired</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+            <tr>
+              <td>{{ job.job__title }}</td>
+              <td class="text-right">{{ job.total }}</td>
+              <td class="text-right">{{ job.open }}</td>
+              <td class="text-right">{{ job.hired }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% else %}
+    <div class="py-16 text-center">
+      <p class="text-5xl">📊</p>
+      <p class="mt-4 text-xl font-semibold">Nothing to report yet</p>
+      <p class="mt-2 opacity-70">No applications, no insights. Not even ours.</p>
+    </div>
+  {% endif %}
+{% endblock %}

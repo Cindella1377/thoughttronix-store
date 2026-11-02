@@ -95,4 +95,9 @@ urlpatterns = [
         views.StageRestoreView.as_view(),
         name="stage_restore",
     ),
+    path(
+        "backoffice/careers/reports/",
+        views.ReportView.as_view(),
+        name="reports",
+    ),
 ]

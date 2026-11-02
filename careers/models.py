@@ -3,6 +3,7 @@ import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models import Count, OuterRef, Q, Subquery
 from django.urls import reverse
 from django.utils import timezone
 
@@ -225,6 +226,68 @@ class ApplicationQuerySet(models.QuerySet):
         """What ``user`` may see from the staff side: everything but their
         own. An employee who applies is purely an applicant."""
         return self.exclude(user=user)
+
+    def funnel(self):
+        """How many of these applications ever reached each kind of stage.
+
+        Read from the log by kind, so renamed, retired, and left-behind
+        stages all still count, and a repeat visit counts once.
+        """
+        reached = dict(
+            StageChange.objects.filter(application__in=self)
+            .order_by()
+            .values_list("to_stage__kind")
+            .annotate(count=Count("application", distinct=True))
+        )
+        return [
+            {"label": kind.label, "count": reached.get(kind.value, 0)}
+            for kind in Stage.Kind
+        ]
+
+    def outcomes(self):
+        """How many of these applications stand at each ending today."""
+        return self.aggregate(
+            hired=Count("pk", filter=Q(stage__kind=Stage.Kind.HIRED)),
+            rejected=Count("pk", filter=Q(stage__kind=Stage.Kind.REJECTED)),
+            withdrawn=Count("pk", filter=Q(stage__kind=Stage.Kind.WITHDRAWN)),
+        )
+
+    def by_job(self):
+        """Totals for each job that has applications, by title."""
+        still_open = Q(
+            stage__kind__in=[Stage.Kind.ENTRY, Stage.Kind.IN_PROGRESS],
+            anonymized_at__isnull=True,
+        )
+        return (
+            self.order_by("job__title")
+            .values("job_id", "job__title")
+            .annotate(
+                total=Count("pk"),
+                open=Count("pk", filter=still_open),
+                hired=Count("pk", filter=Q(stage__kind=Stage.Kind.HIRED)),
+            )
+        )
+
+    def average_days_to_hire(self):
+        """Mean days from applying to the latest hire, or None without one.
+
+        Counts only those hired today, and uses the log rather than
+        ``closed_at``, which anonymizing and reopening can change.
+        """
+        latest_hire = (
+            StageChange.objects.filter(
+                application=OuterRef("pk"), to_stage__kind=Stage.Kind.HIRED
+            )
+            .order_by("-created_at", "-pk")
+            .values("created_at")[:1]
+        )
+        moments = (
+            self.filter(stage__kind=Stage.Kind.HIRED)
+            .annotate(hired_at=Subquery(latest_hire))
+            .values_list("created_at", "hired_at")
+        )
+        days = [(hired - applied).total_seconds() / 86400 for applied, hired in moments]
+        return sum(days) / len(days) if days else None
 
 
 class Application(models.Model):
