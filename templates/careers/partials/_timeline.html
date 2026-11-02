@@ -23,6 +23,7 @@
       {% endfor %}
     </ul>
 
+    {% if not application.anonymized_at %}
     <form method="post" action="{% url 'careers:note' application.pk %}"
           hx-post="{% url 'careers:note' application.pk %}" hx-target="#timeline" hx-swap="outerHTML"
           class="mt-4 space-y-2">
@@ -30,5 +31,6 @@
       {% include "products/partials/_field.html" with field=note_form.body %}
       <button type="submit" class="btn btn-outline btn-sm">Add note</button>
     </form>
+    {% endif %}
   </div>
 </div>

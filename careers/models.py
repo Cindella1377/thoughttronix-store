@@ -157,9 +157,10 @@ class Stage(models.Model):
         """Why this stage can't be retired, or an empty string if it can.
 
         A stage with any application in it, open or closed, stays. So does
-        the last active stage of a kind the app can't run without.
+        the last active stage of a kind the app can't run without. Anonymized
+        records don't count: nothing will ever move them again.
         """
-        if self.applications.exists():
+        if self.applications.filter(anonymized_at__isnull=True).exists():
             return "Holds applications"
         others = Stage.objects.filter(kind=self.kind, is_active=True)
         if self.kind != self.Kind.IN_PROGRESS and not others.exclude(pk=self.pk):
@@ -262,7 +263,7 @@ class Application(models.Model):
 
     @property
     def is_open(self):
-        return self.stage.is_open
+        return self.stage.is_open and self.anonymized_at is None
 
     @property
     def can_reopen(self):

@@ -104,7 +104,7 @@ Hiring also holds data the store has never had to protect. A résumé carries so
 - `move_application(application, stage, by, note="", now=None)`: `by` must pass `can_recruit` and must not be the applicant. The application must be open and the stage active and not Withdrawn. Moving to a Hired or Rejected stage sets `closed_at` and queues that email.
 - `reopen_application(application, stage, reason, by, now=None)`: the application must be closed and not anonymized, the stage must be active and In progress, and `reason` is required and stored as the `StageChange` note. Clears `closed_at`. Sends no email. A Closed job does not block it.
 - `withdraw_application(application, by, now=None)`: `by` must be the applicant and the application open. Moves it to the Withdrawn stage, sets `closed_at`, and queues the confirmation email.
-- `anonymize_application(application, now=None)`: deletes the résumé file first, then clears `user`, `cover_letter`, every `Note`, and every `StageChange` note. Clears `changed_by` on rows the applicant made. Sets `anonymized_at`. Running it twice is harmless.
+- `anonymize_application(application, now=None)`: deletes the résumé file first, then clears `user`, `cover_letter`, every `Note`, and every `StageChange` note. Clears `changed_by` on rows the applicant made. Sets `anonymized_at`, and `closed_at` if the application was still open, so it can never be moved or take new notes. Running it twice is harmless.
 
 Emails are sent with `transaction.on_commit`, so nobody hears about a move that failed. An email cannot be recalled, so it goes only after the save succeeds.
 
@@ -131,7 +131,7 @@ Emails are sent with `transaction.on_commit`, so nobody hears about a move that 
 | Moved between other stages | None |
 | Reopened | None; recruiters contact the applicant themselves |
 
-**Stage administration.** A back-office page lists stages in order, with their kind and how many applications sit in each. Recruiters add and rename stages, reorder them with up and down buttons, and retire and restore them. `Stage.can_retire()` requires that no application, open or closed, sits in the stage and that the stage's required kind keeps an active stage. There is no delete in the app, and `PROTECT` stops one anywhere else. Retired stages disappear from the choices for moves and stay in the timeline.
+**Stage administration.** A back-office page lists stages in order, with their kind and how many applications sit in each. Recruiters add and rename stages, reorder them with up and down buttons, and retire and restore them. `Stage.can_retire()` requires that no application, open or closed, sits in the stage (anonymized records do not count) and that the stage's required kind keeps an active stage. There is no delete in the app, and `PROTECT` stops one anywhere else. Retired stages disappear from the choices for moves and stay in the timeline.
 
 **Default stages.** A data migration (`RunPython`) creates Applied (Entry), Screening, Interview, Offer (In progress), Hired, Rejected, and Withdrawn. They are in a migration because the app breaks without them; demo content belongs in `seed`.
 

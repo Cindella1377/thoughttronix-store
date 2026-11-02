@@ -315,8 +315,11 @@ class AddNoteView(RecruiterRequiredMixin, View):
     """Add a note, and send back the refreshed timeline."""
 
     def post(self, request, pk):
+        # An anonymized record takes no notes: they would be new personal data.
         application = get_object_or_404(
-            Application.objects.visible_to(request.user), pk=pk
+            Application.objects.visible_to(request.user),
+            pk=pk,
+            anonymized_at__isnull=True,
         )
         form = NoteForm(request.POST)
         if form.is_valid():

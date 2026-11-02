@@ -17,6 +17,9 @@ from django.utils import timezone
 
 from .models import Application, Job, Stage, StageChange
 
+# How long a closed application keeps its personal data.
+RETENTION_DAYS = 365
+
 # The email each closing kind sends, named for its templates.
 CLOSING_EMAILS = {
     Stage.Kind.HIRED: "successful",
@@ -229,3 +232,60 @@ def withdraw_application(
         _record_move(current, stage, by, "", now)
         _email_applicant(current, CLOSING_EMAILS[stage.kind])
     return current
+
+
+def anonymize_application(
+    application: Application,
+    now: datetime.datetime | None = None,
+) -> Application:
+    """Remove an application's personal data, keeping an anonymous record.
+
+    Deletes the résumé file first, since a database row going away would
+    leave it on disk. Then clears the owner, cover letter, notes, and
+    stage-change notes, and the applicant's name from the log. Staff
+    actors stay, and so does the history, for reporting. An application
+    still open closes, because it has nobody left to tell. Doing this
+    twice is harmless. Returns the fresh application.
+    """
+    now = now or timezone.now()
+    with transaction.atomic():
+        current = _lock(application)
+        if current.anonymized_at is not None:
+            return current
+        owner_id = current.user_id
+        current.resume.delete(save=False)
+        current.notes.all().delete()
+        changes = current.stage_changes.all()
+        changes.update(note="")
+        if owner_id is not None:
+            changes.filter(changed_by_id=owner_id).update(changed_by=None)
+        current.user = None
+        current.cover_letter = ""
+        current.closed_at = current.closed_at or now
+        current.anonymized_at = now
+        current.save(
+            update_fields=[
+                "resume",
+                "user",
+                "cover_letter",
+                "closed_at",
+                "anonymized_at",
+            ]
+        )
+    return current
+
+
+def purge_applications(now: datetime.datetime | None = None) -> int:
+    """Anonymize everything closed for ``RETENTION_DAYS`` or more.
+
+    Reopening clears ``closed_at``, so the clock restarts if an
+    application closes again. Returns how many were anonymized.
+    """
+    now = now or timezone.now()
+    cutoff = now - datetime.timedelta(days=RETENTION_DAYS)
+    due = Application.objects.filter(closed_at__lte=cutoff, anonymized_at__isnull=True)
+    count = 0
+    for application in due:
+        anonymize_application(application, now=now)
+        count += 1
+    return count
