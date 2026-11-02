@@ -1,0 +1,55 @@
+{% extends "backoffice/base.html" %}
+
+{% block title %}Careers — Back office{% endblock %}
+
+{% block backoffice %}
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
+    <h2 class="text-xl font-semibold">{{ jobs|length }} job{{ jobs|length|pluralize }}</h2>
+    <div class="flex flex-wrap gap-2">
+      <a href="{% url 'careers:stages' %}" class="btn btn-ghost btn-sm">Stages</a>
+      <a href="{% url 'careers:reports' %}" class="btn btn-ghost btn-sm">Hiring report</a>
+      <a href="{% url 'careers:job_create' %}" class="btn btn-primary btn-sm">+ Add job</a>
+    </div>
+  </div>
+
+  {% if jobs %}
+    <div class="overflow-x-auto rounded-box bg-base-100 shadow-md">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Job</th>
+            <th>Department</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+            <tr>
+              <td>
+                <a href="{% url 'careers:job_edit' job.pk %}" class="link-hover font-semibold">{{ job.title }}</a>
+              </td>
+              <td>{{ job.department }}</td>
+              <td>{{ job.location }}</td>
+              <td>
+                <span class="badge badge-outline {% if job.is_open %}badge-success{% endif %}">{{ job.get_status_display }}</span>
+              </td>
+              <td class="text-right">
+                <a href="{% url 'careers:manage_applications' job.pk %}" class="btn btn-ghost btn-xs">Applications</a>
+                <a href="{% url 'careers:job_edit' job.pk %}" class="btn btn-ghost btn-xs">Edit</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="py-16 text-center">
+      <p class="text-5xl">📋</p>
+      <p class="mt-4 text-xl font-semibold">No jobs yet</p>
+      <p class="mt-2 opacity-70">Every great mind starts as a draft.</p>
+      <a href="{% url 'careers:job_create' %}" class="btn btn-primary btn-sm mt-6">Add the first job</a>
+    </div>
+  {% endif %}
+{% endblock %}

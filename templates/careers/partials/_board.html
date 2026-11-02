@@ -1,0 +1,35 @@
+{# One job's pipeline. A move from a card sends this whole partial back. #}
+<div id="board">
+  {% if error %}
+    <div class="alert alert-error mb-4" role="alert"><span>{{ error }}</span></div>
+  {% endif %}
+
+  {% if board.total %}
+    <p class="mb-4 text-sm opacity-70">{{ board.closed }} closed</p>
+    <div class="flex gap-4 overflow-x-auto pb-4">
+      {% for column in board.columns %}
+        <section class="w-64 shrink-0 rounded-box bg-base-100 p-3 shadow-md" aria-label="{{ column.stage.name }}">
+          <h2 class="mb-3 flex items-center justify-between font-semibold">
+            <span>{{ column.stage.name }}</span>
+            <span class="badge badge-outline">{{ column.count }}</span>
+          </h2>
+          <div class="space-y-3">
+            {% for application in column.applications %}
+              <article class="rounded-box bg-base-200 p-3">
+                <a href="{% url 'careers:application' application.pk %}" class="link-hover font-semibold">{{ application.applicant_name }}</a>
+                <p class="mb-2 text-xs opacity-60">Applied {{ application.created_at|date:"M j, Y" }}</p>
+                {% include "careers/partials/_move_form.html" with next=board_url on_board=True %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="py-16 text-center">
+      <p class="text-5xl">📭</p>
+      <p class="mt-4 text-xl font-semibold">No applications yet</p>
+      <p class="mt-2 opacity-70">No one has thought of us yet.</p>
+    </div>
+  {% endif %}
+</div>

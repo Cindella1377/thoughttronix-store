@@ -1,0 +1,9 @@
+{# A job's structured facts, shared by the list and the job page. #}
+<div class="flex flex-wrap gap-2">
+  <span class="badge badge-outline">{{ job.department }}</span>
+  <span class="badge badge-outline">{{ job.location }}</span>
+  <span class="badge badge-outline">{{ job.get_employment_type_display }}</span>
+  {% if job.salary_range %}
+    <span class="badge badge-outline" aria-label="Salary range">{{ job.salary_range }}</span>
+  {% endif %}
+</div>

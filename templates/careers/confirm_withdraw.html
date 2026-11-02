@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Withdraw application — The ThoughtTronix Store{% endblock %}
+
+{% block content %}
+  <div class="card mx-auto max-w-md bg-base-100 shadow-md">
+    <div class="card-body">
+      <h1 class="card-title">Withdraw your application?</h1>
+      <p>You're withdrawing from <strong>{{ application.job.title }}</strong>.</p>
+      <p class="text-sm opacity-70">
+        You can't apply to this job again. If you change your mind, email
+        <a href="mailto:{{ careers_email }}" class="link">{{ careers_email }}</a>.
+      </p>
+      <form method="post" class="card-actions mt-4 justify-end">
+        {% csrf_token %}
+        <a href="{% url 'careers:applications' %}" class="btn btn-ghost">Keep it</a>
+        <button type="submit" class="btn btn-error">Yes, withdraw</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{# The list form's Name field with its errors. Include with form. #}
+{% for error in form.non_field_errors %}
+  <div class="alert alert-error" role="alert"><span>{{ error }}</span></div>
+{% endfor %}
+<div>
+  <label class="label mb-1" for="{{ form.name.id_for_label }}">List name</label>
+  {{ form.name }}
+  {% for error in form.name.errors %}
+    <p class="mt-1 text-sm text-error">{{ error }}</p>
+  {% endfor %}
+</div>

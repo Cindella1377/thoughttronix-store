@@ -1,6 +1,6 @@
 # CLAUDE.md — The ThoughtTronix Store
 
-A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes, and `prd/product-images.md` and `plans/product-images.md` for product photos.
+A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes, `prd/product-images.md` and `plans/product-images.md` for product photos, `prd/account-email.md` and `plans/account-email.md` for account email and passwords, `prd/wishlists.md` and `plans/wishlists.md` for wishlists, and `prd/careers.md` and `plans/careers.md` for the applicant tracking system.
 
 ## Commands
 
@@ -8,6 +8,8 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
 - `uv run python manage.py migrate` — apply migrations
 - `uv run python manage.py seed` — reset the database to the demo world
   (destructive, idempotent)
+- `uv run python manage.py purge_applications` — anonymize applications
+  closed for 12 months (nothing schedules it; run it, or schedule it)
 - `uv run python manage.py tailwind runserver` — dev server + Tailwind watch
 - `uv run python manage.py tailwind build` — compile production CSS
 - `uv run pytest` — run the test suite
@@ -15,10 +17,20 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
 
 ## Project layout
 
-- `config/` — the project package (settings, root urls)
+- `config/` — the project package (settings, root urls). `config/mail.py`
+  is the default email backend: it prints each email in the dev-server
+  terminal as written, so a reset link can be copied whole. Mail settings
+  in `.env` switch to real delivery.
 - `accounts/` — custom user model (`accounts.User`, `AbstractUser` + nullable
   `job_title`). Roles are Django's own vocabulary: customers are plain users,
-  employees are `is_staff`, the admin is `is_superuser`. No role field, no Groups.
+  employees are `is_staff`, the admin is `is_superuser`. No Groups, and no role
+  field but one deliberate exception: `is_recruiter` opens hiring data to chosen
+  staff, because candidate data is not for everyone. `User.can_recruit` is the
+  one place that decides, and it needs `is_staff` as well (or a superuser).
+  Every account has a required email, unique ignoring case. The app also
+  carries the account page and the password reset and change flows, built
+  on Django's own views. `User.change_email` is the one place an email
+  changes: it saves the new address and sends a notice to the old one.
 - `products/` — catalog (`Category`, `Product`, `Tag`), its back-office CRUD,
   and the `seed` command. A product may carry one photo (`Product.image`);
   `Product.image_url` is the one place that chooses between the photo and
@@ -27,11 +39,15 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
   committed; the full-size PNG originals are gitignored.
 - `media/` — uploaded photos; runtime data like `db.sqlite3` (gitignored,
   rebuilt by `seed`, served by Django only when `DEBUG` is on)
+- `private_media/` — résumés (gitignored). No URL reaches it: files leave
+  only through a permission-checked view, so never move them to `media/`
 - `orders/` — cart, checkout, orders, coupons, and back-office order and
   coupon management. The cart page carries six HTMX interactions: the
   core's add, quantity, and remove, plus apply coupon, remove coupon, and
   dismiss the coupon notice.
 - `dashboard/` — the staff analytics dashboard
+- `careers/` — the applicant tracking system: public job pages and the
+  recruiter-only back office behind the Careers tab
 - `PROMPTS.md` — the AI-usage log; append entries, never rewrite history
 - `templates/` — project-level templates (`base.html`); app templates live in
   `templates/<app>/`
@@ -43,10 +59,12 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
 Logic lives in models and managers; cross-model workflows get a service
 module; views stay thin.
 
-Exactly two deliberate deep modules, docstrings and type hints on every
+Exactly three deliberate deep modules, docstrings and type hints on every
 public function: `orders/services.py` (`place_order`, plus the coupon
-workflow — `apply_coupon`, `refresh_cart_coupon`, and `find_replacement`)
-and `dashboard/queries.py` (the dashboard's aggregations).
+workflow — `apply_coupon`, `refresh_cart_coupon`, and `find_replacement`),
+`dashboard/queries.py` (the dashboard's aggregations), and
+`careers/services.py` (the hiring workflows, the only code that changes an
+application's stage).
 
 Time-dependent code takes an optional `now` (defaulting to
 `timezone.now()`), so tests pass exact moments instead of freezing the
@@ -81,6 +99,8 @@ via environs with working defaults — the app must run with no `.env` present.
 ## Testing
 
 pytest + pytest-django. Shared fixtures live in the project-level
-`conftest.py` — plain fixtures, no factory-boy. Tests never invoke the seed
-command. Every test runs with `MEDIA_ROOT` pointed at a temporary directory
-(the autouse `media_root` fixture), so none can touch the real `media/`. The suite must be green at every phase boundary.
+`conftest.py` — plain fixtures, no factory-boy. Most tests read the seed's
+constants instead of running it; the few that run `seed` are safe because
+every test runs with `MEDIA_ROOT` and `PRIVATE_MEDIA_ROOT` pointed at
+temporary directories (the autouse `media_root` and `private_media_root`
+fixtures), so none can touch the real folders. The suite must be green at every phase boundary.

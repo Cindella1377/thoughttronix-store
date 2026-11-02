@@ -1,0 +1,7 @@
+{# Switch between a job's table and board. Pass view as "table" or "board". #}
+<div class="join mb-4">
+  <a href="{% url 'careers:manage_applications' job.pk %}"
+     class="btn join-item btn-sm {% if view == 'table' %}btn-primary{% endif %}">Table</a>
+  <a href="{% url 'careers:board' job.pk %}"
+     class="btn join-item btn-sm {% if view == 'board' %}btn-primary{% endif %}">Board</a>
+</div>

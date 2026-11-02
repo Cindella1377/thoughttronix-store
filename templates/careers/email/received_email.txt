@@ -1,0 +1,11 @@
+{% autoescape off %}Hello {{ user.get_username }},
+
+We received your application for {{ job.title }}. Your status is now: {{ status }}.
+
+You can check it any time under My applications on your account.
+
+Questions? Email the hiring team at {{ careers_email }}.
+
+ThoughtTronix
+Your Thoughts, Our Business.
+{% endautoescape %}

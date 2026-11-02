@@ -8,6 +8,6 @@ from .models import User
 class UserAdmin(DjangoUserAdmin):
     fieldsets = (
         *DjangoUserAdmin.fieldsets,
-        ("ThoughtTronix", {"fields": ("job_title",)}),
+        ("ThoughtTronix", {"fields": ("job_title", "is_recruiter")}),
     )
-    list_display = ("username", "email", "job_title", "is_staff")
+    list_display = ("username", "email", "job_title", "is_staff", "is_recruiter")

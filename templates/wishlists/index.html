@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Your wishlists — The ThoughtTronix Store{% endblock %}
+
+{% block content %}
+  <h1 class="mb-6 flex items-center gap-2 text-3xl font-bold">
+    {% include "wishlists/partials/_lamp_icon.html" with filled=True class="h-8 w-8 text-amber-400" %}
+    Your wishlists
+  </h1>
+
+  {% if not user.first_name %}
+    <div class="alert mb-6" role="status">
+      <span>Add your first name so friends recognise your lists.</span>
+      <a href="{% url 'accounts:account' %}#first-name" class="btn btn-sm">Add name</a>
+    </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'wishlists:index' %}" class="card mb-6 bg-base-100 shadow-md">
+    {% csrf_token %}
+    <div class="card-body gap-3">
+      <h2 class="card-title text-lg">+ New list</h2>
+      <div class="flex flex-wrap items-end gap-2">
+        <div class="min-w-0 flex-1">{% include "wishlists/partials/_name_field.html" %}</div>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </div>
+    </div>
+  </form>
+
+  {% if wishlists %}
+    <ul class="space-y-4">
+      {% for wishlist in wishlists %}
+        <li class="card bg-base-100 shadow-md">
+          <div class="card-body gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 class="card-title">
+                  <a href="{% url 'wishlists:detail' wishlist.pk %}" class="link-hover">{{ wishlist.name }}</a>
+                  {% if wishlist.is_main %}<span class="badge badge-warning badge-sm">★ Main</span>{% endif %}
+                  {% if wishlist.is_sample %}<span class="badge badge-info badge-outline badge-sm" title="Added by the demo, not chosen by its owner">Sample list</span>{% endif %}
+                </h2>
+                <p class="text-sm opacity-70">{{ wishlist.item_count }} item{{ wishlist.item_count|pluralize }}</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-1">
+                <a href="{% url 'wishlists:detail' wishlist.pk %}" class="btn btn-outline btn-sm">Open</a>
+                {% if not wishlist.is_main %}
+                  <form method="post" action="{% url 'wishlists:make_main' wishlist.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-sm" title="Make this your main list — the genie lamp adds here">☆ Make main</button>
+                  </form>
+                {% endif %}
+                <a href="{% url 'wishlists:rename' wishlist.pk %}" class="btn btn-ghost btn-sm">Rename</a>
+                {% if not wishlist.is_main %}
+                  <a href="{% url 'wishlists:delete' wishlist.pk %}" class="btn btn-ghost btn-sm text-error">Delete</a>
+                {% endif %}
+              </div>
+            </div>
+            {% include "wishlists/partials/_sharing.html" %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="py-16 text-center">
+      <div class="flex justify-center text-amber-400">
+        {% include "wishlists/partials/_lamp_icon.html" with class="h-14 w-14" %}
+      </div>
+      <p class="mt-4 text-xl font-semibold">Your lamp is empty</p>
+      <p class="mt-2 opacity-70">Rub a lamp in the catalog to make a wish, or start a list above.</p>
+      <a href="{% url 'products:catalog' %}" class="btn btn-primary btn-sm mt-6">Browse the catalog</a>
+    </div>
+  {% endif %}
+{% endblock %}

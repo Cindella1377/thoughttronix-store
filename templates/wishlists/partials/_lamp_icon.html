@@ -1,0 +1,13 @@
+{# The genie-lamp icon. Include with filled=True for the gold lamp and #}
+{# class=<size classes>; it takes its colour from the surrounding text. #}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     class="{{ class|default:'h-5 w-5' }}"
+     fill="none" stroke="currentColor" stroke-width="1.6"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M4 13h12c0 3-2.7 5-6 5s-6-2-6-5z" {% if filled %}fill="currentColor"{% endif %} />
+  <path d="M7 13c0-1.9 1.3-3 3-3s3 1.1 3 3" {% if filled %}fill="currentColor"{% endif %} />
+  <circle cx="10" cy="8.6" r="1" {% if filled %}fill="currentColor"{% endif %} />
+  <path d="M16 13.5c2.2 0 3.7-1 5-3.5" />
+  <path d="M4.5 14.5c-2 0-2.6-3.2.2-3.2" />
+  <path d="M10 18v2M7 20h6" />
+</svg>

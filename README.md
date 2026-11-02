@@ -30,7 +30,24 @@ The `seed` command creates a fixed demo world — the same one every run:
 | ---------- | ------------- | ------------------------------------------------------------- |
 | `admin`    | `admin123`    | Superuser: everything below, plus the Django admin at `/admin/` |
 | `employee` | `employee123` | Staff: the back office (products, orders, coupons, dashboard)  |
+| `recruiter` | `recruiter123` | Staff who can recruit: everything `employee` has, plus Careers |
 | `customer` | `customer123` | A customer with order history and a live cart                  |
+
+Each demo login's email is `<username>@example.com`.
+
+## Accounts and email
+
+Signing up needs an email address, and no two accounts can share one.
+Signed-in users reach their account page from "Hi, username" in the
+navbar; there they can change their email or their password. The sign-in
+page links to "Forgot your password?", which emails a reset link that
+works once and lasts one hour.
+
+By default no real mail is sent. Reset links and the notice sent when an
+email changes are printed in the terminal running the dev server: copy the
+link from there. To send real mail, copy `.env.example` to `.env` and fill
+in `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`,
+`EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, and `DEFAULT_FROM_EMAIL`.
 
 ## Demo coupons
 
@@ -61,6 +78,7 @@ Staff manage coupons in the back office's Coupons tab.
 | `uv sync`                                    | Install dependencies                     |
 | `uv run python manage.py migrate`            | Apply database migrations                |
 | `uv run python manage.py seed`               | Reset the database to the demo world (destructive, idempotent) |
+| `uv run python manage.py purge_applications` | Anonymize applications closed for 12 months |
 | `uv run python manage.py tailwind runserver` | Dev server + Tailwind watch              |
 | `uv run python manage.py tailwind build`     | Compile production CSS                   |
 | `uv run pytest`                              | Run the test suite                       |
@@ -70,7 +88,8 @@ Staff manage coupons in the back office's Coupons tab.
 ## Repo layout
 
 `config/` is the project package (settings, root URLs); the four apps are
-`accounts` (custom user model), `products` (the public catalog and its
+`accounts` (custom user model, the account page, password reset and
+change), `products` (the public catalog and its
 back-office CRUD), `orders` (cart, checkout, orders, and coupons — with
 `place_order` and the coupon swap in `orders/services.py`), and `dashboard` (staff
 analytics, with the aggregations in `dashboard/queries.py`). Project-level

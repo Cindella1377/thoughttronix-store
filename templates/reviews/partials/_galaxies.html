@@ -1,0 +1,14 @@
+{# Five galaxies, the first `filled` of them lit. One inline SVG, drawn five #}
+{# times. Include with filled and value (a rating, or an average like 4.3), #}
+{# plus name for a single review's level. #}
+<span class="inline-flex items-center gap-0.5" role="img"
+      aria-label="{{ value }} out of 5 galaxies{% if name %}, {{ name }}{% endif %}">
+  {% for n in "12345" %}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+         class="h-5 w-5 {% if forloop.counter <= filled %}text-secondary{% else %}opacity-20{% endif %}"
+         aria-hidden="true">
+      <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" />
+      <path d="M12 9.6c3.8-2.6 8.6-.8 9.4 3.2M12 14.4c-3.8 2.6-8.6.8-9.4-3.2M14.4 12c2.6 3.8.8 8.6-3.2 9.4M9.6 12c-2.6-3.8-.8-8.6 3.2-9.4" />
+    </svg>
+  {% endfor %}
+</span>

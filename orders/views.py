@@ -28,6 +28,7 @@ from django.views.generic import (
 
 from accounts.mixins import StaffRequiredMixin
 from products.models import Product
+from reviews.models import Review
 
 from .forms import CheckoutForm, CouponApplyForm, CouponForm, OrderStatusForm
 from .models import Cart, CartItem, Coupon, Order
@@ -174,6 +175,13 @@ class CheckoutView(LoginRequiredMixin, FormView):
             return redirect("orders:cart")
         return super().dispatch(request, *args, **kwargs)
 
+    def get_initial(self):
+        # Only a starting value: the customer can overwrite it for this
+        # order, and the order stores its own copy.
+        initial = super().get_initial()
+        initial["email"] = self.request.user.email
+        return initial
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         cart = Cart.for_user(self.request.user)
@@ -259,13 +267,18 @@ class ManageOrderDetailView(StaffRequiredMixin, DetailView):
 
 
 class UpdateOrderStatusView(StaffRequiredMixin, View):
-    """POST-only: set an order's status from the back-office dropdown."""
+    """POST-only: set an order's status from the back-office dropdown.
+
+    A move away from Delivered removes the reviews the order no longer
+    backs — an explicit call, not a signal, so the rule is easy to find.
+    """
 
     def post(self, request, pk):
         order = get_object_or_404(Order, pk=pk)
         form = OrderStatusForm(request.POST, instance=order)
         if form.is_valid():
             form.save()
+            Review.objects.remove_unqualified(order)
             messages.success(
                 request,
                 f"{order.number} is now {order.get_status_display().lower()}.",

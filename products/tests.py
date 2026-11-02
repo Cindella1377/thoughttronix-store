@@ -11,7 +11,13 @@ from django.utils.text import slugify
 
 from orders.models import CartItem, Coupon, Order, OrderItem
 
-from .management.commands.seed import CATALOG, PHOTO_DIR, PRODUCT_PHOTOS
+from .management.commands.seed import (
+    BACKGROUND_CUSTOMERS,
+    CATALOG,
+    DEMO_USERS,
+    PHOTO_DIR,
+    PRODUCT_PHOTOS,
+)
 from .models import Category, Product, Tag
 
 # --- Model behavior -------------------------------------------------------
@@ -279,6 +285,20 @@ def test_seed_photos_match_the_catalog_and_the_files_on_disk():
     for slug, filename in PRODUCT_PHOTOS.items():
         assert slug in catalog_slugs, slug
         assert (PHOTO_DIR / filename).is_file(), filename
+
+
+def test_seed_users_each_have_their_own_email():
+    """Checked against the seed's data, without running the command.
+
+    Background customers are seeded as ``<username>@example.com``.
+    """
+    emails = [email.lower() for _, _, email, *_ in DEMO_USERS]
+    emails += [
+        f"{username}@example.com".lower() for username, *_ in BACKGROUND_CUSTOMERS
+    ]
+
+    assert all(emails)
+    assert len(set(emails)) == len(emails)
 
 
 def test_seed_builds_the_demo_world(db):

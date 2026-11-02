@@ -123,7 +123,9 @@ def test_empty_cart_shows_empty_state(client, customer):
 
 
 def test_customers_see_only_their_own_cart(client, customer, cart_item):
-    other = get_user_model().objects.create_user(username="other", password="x")
+    other = get_user_model().objects.create_user(
+        username="other", email="other@example.com", password="x"
+    )
     client.force_login(other)
 
     response = client.get(reverse("orders:cart"))
@@ -235,7 +237,9 @@ def test_remove_endpoint_deletes_the_line(client, customer, cart_item):
 
 
 def test_cannot_mutate_another_customers_line(client, cart_item):
-    other = get_user_model().objects.create_user(username="other", password="x")
+    other = get_user_model().objects.create_user(
+        username="other", email="other@example.com", password="x"
+    )
     client.force_login(other)
 
     response = client.post(reverse("orders:remove", kwargs={"pk": cart_item.pk}))

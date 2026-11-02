@@ -25,6 +25,11 @@
     <a role="tab"
        class="tab {% if section == 'dashboard' %}tab-active{% endif %}"
        href="{% url 'dashboard:index' %}">Dashboard</a>
+    {% if user.can_recruit %}
+      <a role="tab"
+         class="tab {% if section == 'careers' %}tab-active{% endif %}"
+         href="{% url 'careers:manage_jobs' %}">Careers</a>
+    {% endif %}
   </div>
 
   {% block backoffice %}{% endblock %}

@@ -1,0 +1,17 @@
+{# The product page's reviews section, rendered by {% reviews_section %}: #}
+{# the summary, the form's place, and everyone else's reviews. #}
+<section id="reviews" class="mt-16 scroll-mt-24">
+  <h2 class="text-2xl font-bold">Reviews</h2>
+
+  {% include "reviews/partials/_summary.html" %}
+
+  <div id="review-form-place" class="mt-6">
+    {% include "reviews/partials/_form_place.html" %}
+  </div>
+
+  <div id="review-list" class="mt-4 space-y-4">
+    {% for review in reviews %}
+      {% include "reviews/partials/_card.html" %}
+    {% endfor %}
+  </div>
+</section>

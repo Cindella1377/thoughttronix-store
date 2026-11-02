@@ -1,0 +1,70 @@
+{% extends "backoffice/base.html" %}
+
+{% block title %}Stages — Back office{% endblock %}
+
+{% block backoffice %}
+  <div class="breadcrumbs mb-4 text-sm">
+    <ul>
+      <li><a href="{% url 'careers:manage_jobs' %}">Jobs</a></li>
+      <li>Stages</li>
+    </ul>
+  </div>
+
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
+    <h2 class="text-xl font-semibold">{{ stages|length }} stage{{ stages|length|pluralize }}</h2>
+    <a href="{% url 'careers:stage_create' %}" class="btn btn-primary btn-sm">+ Add stage</a>
+  </div>
+
+  <div class="overflow-x-auto rounded-box bg-base-100 shadow-md">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Stage</th>
+          <th>Kind</th>
+          <th>Applications</th>
+          <th class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stage in stages %}
+          <tr>
+            <td>
+              {% if stage.is_active %}
+                <form method="post" action="{% url 'careers:stage_shift' stage.pk %}" class="flex gap-1">
+                  {% csrf_token %}
+                  <button type="submit" name="direction" value="up" class="btn btn-ghost btn-xs" aria-label="Move {{ stage.name }} up">↑</button>
+                  <button type="submit" name="direction" value="down" class="btn btn-ghost btn-xs" aria-label="Move {{ stage.name }} down">↓</button>
+                </form>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'careers:stage_edit' stage.pk %}" class="link-hover font-semibold">{{ stage.name }}</a>
+              {% if not stage.is_active %}<span class="badge badge-outline badge-sm">Retired</span>{% endif %}
+            </td>
+            <td>{{ stage.get_kind_display }}</td>
+            <td>{{ stage.application_count }}</td>
+            <td class="text-right">
+              <div class="flex flex-wrap items-center justify-end gap-1">
+                <a href="{% url 'careers:stage_edit' stage.pk %}" class="btn btn-ghost btn-xs">Rename</a>
+                {% if not stage.is_active %}
+                  <form method="post" action="{% url 'careers:stage_restore' stage.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-xs">Restore</button>
+                  </form>
+                {% elif stage.retire_blocker %}
+                  <span class="text-xs opacity-60">{{ stage.retire_blocker }}</span>
+                {% else %}
+                  <form method="post" action="{% url 'careers:stage_retire' stage.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-xs text-error">Retire</button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

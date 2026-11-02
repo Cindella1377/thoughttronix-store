@@ -28,6 +28,341 @@ Each entry has this shape:
     - **Deviations:** recommendations overridden, follow-up questions asked
     - **Sideways:** failures, wrong turns, and how they were caught
 
+## 2026-11-01 — Designed an applicant tracking system by grilling, built it in eleven phases, and tested it in a headless browser
+
+### Prompts
+1. /grill-me Applicant Tracking System (ATS)
+2. A
+3. a
+4. b
+5. a
+6. C with the empty-stage rule
+7. c
+8. b
+9. b
+10. b
+11. a
+12. b
+13. b
+14. b
+15. c
+16. c
+17. a
+18. b
+19. a
+20. b
+21. b
+22. c
+23. b
+24. b
+25. a
+26. yes, write prd/careers.md also commit and push
+27. yes
+28. yes keep all 11
+29. create a careers branch, then commit and push
+30. yes start phase 1 than commit and push before moving on
+31. yes switch to /backoffice/careers/ then start phase 2 dont forget to commit and push for each phase
+32. yes start phase 3 and comment and push
+33. yes start phase 4 then commit and push
+34. yes start phase 5 then commit and push
+35. yes start phase 6 then commit and push
+36. yes start phase 7 then commit and push
+37. yes start phase 8 then commit and push
+38. yes start phase 9 then commit and push
+39. yes start phase 10 then commit and push
+40. yes start phase 11 then commit and push
+41. try the app in chrome first
+42. chrome is connected, go ahead
+43. use the headless browser
+44. yes commit and push, include the PROMPTS.md and CLAUDE.md fixes
+
+### Summary
+- **Outcome:** A 24-question grilling produced `prd/careers.md` and an
+  11-phase `plans/careers.md`. All eleven phases are built on a new
+  `careers` branch, one commit each: a public jobs site, private PDF
+  résumés, staff-editable stages with a fixed `kind`, an add-only timeline
+  of moves and notes, emails sent on commit, withdraw and reopen, a
+  recruiter-only table, board, and report, 12-month anonymizing, and a demo
+  world in `seed`. The suite ends at 790 passing tests. `CLAUDE.md` gained
+  the `is_recruiter` exception and a third deep module, both chosen openly.
+- **Deviations:** Question 3 chose staff-editable stages over the
+  recommended fixed list. Question 16 dropped the recommended reminder
+  banner after a hire. Question 24 kept Reopen silent over the recommended
+  automatic email, so a wrongly rejected applicant hears nothing unless a
+  recruiter follows up. Prompt 31 accepted moving the careers URLs under
+  `/backoffice/` after the agent found the mismatch. Prompt 32 said
+  "comment"; the agent took it to mean commit and said so. Prompt 43 chose
+  the headless browser after the Chrome extension would not connect.
+- **Sideways:** The agent copied `/manage/` URLs into the PRD from the
+  reviews PRD without checking the code, which uses `/backoffice/`; it
+  caught this during phase 1. The first phase 1 build command failed in
+  the shell before running anything, and the files were written directly
+  instead. The agent's phase 7 report claimed Hired and Rejected stages
+  could never retire, wrote a mid-sentence correction into it, and fixed
+  the claim properly after phase 8. Phase 8 thinking found three design
+  gaps (an anonymized open application, new notes on anonymized records,
+  and anonymized records blocking retirement), which went into the PRD.
+  Chrome never connected: three attempts failed even after the user
+  connected it, so the walkthrough ran in headless Chromium, not the
+  user's Chrome, on a throwaway database. That run found four bugs all the
+  tests had missed: the stage arrows saved but the page never showed the
+  new order, the navbar overlapped on phones, timelines said "Applied to
+  Applied", and the move dropdown defaulted to Applied. All four were
+  fixed with tests where tests could catch them. The first browser run
+  also had script mistakes of its own. `purge_applications` is still
+  unscheduled, and `CLAUDE.md` wrongly said tests never run `seed`, which
+  this session corrected.
+
+## 2026-10-18 — Designed product reviews with galaxy ratings; wrote the PRD and a nine-phase plan
+
+### Prompts
+1. /grill-me the site needs a review for products this would be in the product page for confirmed buyers it also has a rating system but lets not do start since that is for other things let make them galaxys 5 of them so if it is 5 its out of this world. for the soulsear owners they can but not next of kin to create a reiew. Customers can edit and delete there own review. staff can edit and delet any review. This process doesn't reload the page or cause the customer to lose their place.
+2. B delivered only
+3. A one per customer per product
+4. b with option of photo upload if desired
+5. A
+6. c if they bought it and sent it back that doesn't count it disqualifies that option to review
+7. c
+8. b
+9. B use those
+10. b
+11. c
+12. c
+13. b
+14. a yes but include the date with the review as well
+15. b
+16. c
+17. a
+18. yes write the PRD
+19. yes run prd-to-plan
+20. what does merging phases do?
+21. yes that order works write the plan and promts.md
+
+### Summary
+- **Outcome:** No code changed. A sixteen-question `/grill-me` interview
+  settled the design: only Delivered buyers review, one review per
+  customer per product, galaxies 1–5 (Black hole, Space junk, Low orbit,
+  Stellar, Out of this world), optional text and one optional photo,
+  reviews removed when their purchase stops being Delivered, in-place
+  HTMX write/edit/delete with an inline delete confirm, staff moderation
+  inline plus a back-office Reviews list, per-case messages in the form's
+  place, an "edited" / "edited by ThoughtTronix staff" marker, a
+  "Confirmed buyer · bought Mon YYYY" badge, ten per page with "Show
+  more", galaxies on catalog cards, live publishing with no approval
+  queue, and seeded samples including a pre-recall SoulSear Mark I
+  review. Wrote `prd/reviews.md` and `plans/reviews.md` (nine phases).
+  Nothing was committed.
+- **Deviations:** Question 3 chose optional text (B) over the recommended
+  required text, and added an optional photo; Question 4 then settled on
+  one photo. Question 5 chose deleting a review when its purchase is
+  returned (C) over the recommended keep-it rule (A). Question 13 accepted
+  the recommendation but asked for a date on each review, which became
+  Question 14 (posted date plus a bought-month badge). Every other answer
+  took the recommended option. Prompt 20 was a follow-up asking what
+  merging phases does; the agent explained, recommended keeping nine
+  phases and moving "Returns remove reviews" up to Phase 3, and that order
+  was approved.
+- **Sideways:** "SoulSear owners, but not next of kin" was read as "the
+  review belongs to the account that placed the order"; the agent stated
+  that reading in the first question and it was never corrected, so it
+  went into the PRD as written. The PRD notes two gaps the design leaves
+  open: a status changed in Django's admin site does not remove reviews,
+  and the seeded $1.2M Mark I order will show in long dashboard ranges.
+  No tests or Ruff were run, since no code changed.
+
+## 2026-10-18 — Restored the stray draft plan; designed and built wishlists in eight phases
+
+### Prompts
+1. i have a PRD and plan but it saved one level outside of my reporsitory on local instead of thoughtrnix-stor\prd why is this and can you fix it?
+2. i approve if you can copy and bring it back that would be helpful
+3. yes commit it
+4. push it
+5. /grill-me Add customer wishlist under there profile login. They have the ability to share it and add/remove if they want to update without relading the page unless shared only visible to the owner. the add/remove button is only on the product detail page but can have a "genie lamp" on the thumbnail which is smail just the icon  in the catolog to add to wishlist.
+6. I like A and B
+7. I like A1 because you can have your public wishlist and still have your link sent on or off control its a way to get others to the site kinda like PR in away brings people to come to the site so they would have to sign up would be the benifit
+8. A, anyone can view but need account to buy
+9. B the thumbnail genuie lamp is a default to the main list that is assigned
+10. A, they can pick which list is main
+11. A, each list has its own switches
+12. b
+13. B the genuie lamb is normal and when clicked it has smoke coming out of it also
+14. A, outline lamp turns gold with smoke
+15. C, both
+16. C, both
+17. a
+18. b
+19. a
+20. a
+21. A staff isn't odd that is another recommendation if they choice to display it for items they like if someone buys from there recommendation create a dashboard point system simple  that only staff or admin can see
+22. B, separate follow-up feature
+23. A
+24. b i like this because what is public shouldn't matter if they want to be on a searching binge
+25. a
+26. b
+27. a with B newest first default with the option of owner drags items if they want to change view order
+28. b
+29. a but it shows it was added automaticly is not hidden this wasn't a user choice unless they add it themself so it would have to have a difference
+30. A user can remove sample if they dont support it if desired
+31. yes write the prd
+32. commit it and write the plan
+33. can we do a pytest to see if it works?
+34. keep it as listed, write the plan
+35. commit and push it implement
+36. yes please
+37. add the session to PROMPTS.md
+
+### Summary
+- **Outcome:** The stray file one folder above the repo,
+  `C:\Users\saman\cidm3312\account-security-draft.md`, was the draft plan
+  removed in `05f884a`. It was moved back to
+  `plans/account-security-draft.md`, committed, and pushed. A grill-me
+  interview then produced `prd/wishlists.md` and `plans/wishlists.md`
+  (eight phases), and all eight were built and pushed, one commit per
+  phase, in a new `wishlists` app. Shoppers keep up to 20 named lists,
+  with "My Wishlist" created on first save and starred as main. A genie
+  lamp on catalog thumbnails toggles the main list, turning gold with a
+  CSS smoke puff. The product page has a main button and a "Save to…"
+  dropdown. The owner's list page has ✕ and ↑/↓ buttons. Each list has a
+  "Share by link" switch (a new token each time it is turned on) and a
+  "Show on my public page" switch for `/wishlist/<username>/`. The
+  account page gained an optional first-name form, and `seed` makes
+  badged sample lists. The suite went from 326 to 435 tests, all green,
+  with Ruff clean.
+- **Deviations:** The user went against the recommendation several
+  times. On sharing they chose both the private link and the public
+  page, as two independent switches (prompts 6–7), over a single
+  three-level setting. They chose several named lists over one list
+  (9), and the one-button-plus-dropdown product control over per-list
+  checkboxes (12). They made the lamp a toggle with smoke (13), not
+  add-only, and chose a friendly public page for real users over the
+  one that hides whether an account exists (24). They chose a new link
+  each time over a separate "Get a new link" button (17). Their reasons
+  for the public page were PR and sign-ups. Drag-to-reorder (27) would
+  have broken the HTMX-only rule, so they took ↑/↓ buttons instead (28).
+  Sample lists had to be visibly marked as not the owner's choice
+  (29–30). Staff wishlists became a future staff-picks points feature,
+  split into its own PRD (21–22). Showing the owner's first name
+  needed a first-name form on the account page, because no page set
+  one; the user approved adding it (18–19).
+- **Sideways:** Why the draft landed outside the repo was never proven.
+  Its timestamp matched the commit that added it to `plans/`, which
+  suggests a tool started in the parent folder. The first delete of the
+  stray file was blocked by the permission check until the user
+  approved it. During the build, one shell command failed to parse
+  because of quoting and was rerun from a script file. In the browser
+  check, the automation tool's mouse clicks never reached the page (no
+  click events registered at all), so the lamp toggle was confirmed with
+  a script click. The user has not yet tried it with a real mouse.
+  `db.sqlite3` is changed by the migration and the reseed and remains
+  uncommitted.
+
+## 2026-10-10 — Tried to plan an account-security PRD that was never on disk
+
+### Prompts
+1. /prd-to-plan @prd/account-security.md
+2. 1
+3. saved it to prd/account-security.md
+4. saved it again, check prd/account-security.md now
+5. Save a summary of your session in PROMPTS.md
+
+### Summary
+- **Outcome:** No plan was written and no code changed. The skill needs a
+  PRD in context, and `prd/account-security.md` did not exist at any of
+  the three checks. The agent read the current `accounts` app (model,
+  forms, views, URLs) and `plans/account-email-slices.md` so the
+  exploration step is done for when the PRD arrives. This entry is the
+  only file changed.
+- **Deviations:** The agent offered three readings of the missing file: a
+  new PRD not yet saved, `prd/account-email.md` under its draft name, or a
+  PRD still to be written. Prompt 2 chose the first. The agent twice
+  recommended pasting the PRD text into the chat instead of saving again;
+  prompt 4 saved again instead. Prompt 5 asked for this log in different
+  words from the standard session-log prompt; the agent used the standard
+  entry shape.
+- **Sideways:** The file was reported saved twice and was missing both
+  times; `prd/` still held its four files, the newest from 15:48. A search
+  of the home folder for documents saved in the last 30 minutes (skipping
+  `AppData` and anything deeper than six folders) found no PRD. The only
+  account-security file found was `C:\Users\saman\cidm3312\account-security-draft.md`,
+  one folder above the repo: a byte-for-byte copy of the draft plan
+  removed in `05f884a`, written against `prd/account-email.md`, not a PRD.
+  Why the saves did not land was never diagnosed.
+
+## 2026-10-10 — Designed and built account email, password reset, and password change
+
+### Prompts
+1. yes /grill-me
+2. needs a provided an email when account is created, ability for them to reset there password when forgotten, can change there password if wanted.
+3. A, required and unique
+4. A, no exemption
+5. B, console by default with .env switch
+6. b, frees up the staff because when you get alot of costermer it would be a full-time job just fixing them
+7. A, re-enter the current password
+8. A, username only but using email address can sent them there username
+9. B, 1 hour
+10. B, notify the old address
+11. B, prefill it but still editable
+12. A, write the PRD then the plan
+13. build phase 1 of the plan
+14. build phase 2 of the plan
+15. build phase 3 of the plan
+16. build phase 4 of the plan
+17. build phase 5 of the plan
+18. run the dev server so I can see the account page
+19. stop the dev server
+20. Append a session log to PROMPTS.md at the repo root, under today's date, newest entry at the top. Record every prompt I gave you this session, in order, including any corrections. End the entry with a short summary: the outcome, any places where I deviated from a recommended answer or asked follow-up questions, and anything that went sideways.
+21. I viewed and all looks correct and running
+
+### Summary
+- **Outcome:** A ten-question grill-me interview produced
+  `prd/account-email.md` and `plans/account-email.md`, and all five phases
+  of the plan were built. Signup requires an email that is unique ignoring
+  case (model constraint and migration `accounts/0002`). The sign-in page
+  links to a password reset by emailed link, valid once and for one hour,
+  which also states the username. A new account page, reached from
+  "Hi, username", lets a signed-in user change their email (current
+  password required, notice sent to the old address) and their password.
+  Checkout prefills the account email. Mail settings read from `.env` and
+  default to printing in the dev-server terminal. `CLAUDE.md` and
+  `README.md` were updated. The suite went from 294 to 326 tests, green
+  at every phase boundary, with Ruff clean. Nothing was committed; the
+  work is uncommitted on `main`.
+- **Deviations:** One recommendation was overridden. On whether to have
+  an account page (prompt 6), the agent recommended a navbar
+  "Change password" link only, with staff fixing emails in the admin
+  site; the answer was the account page with self-service email editing,
+  so staff are not tied up fixing emails as customers grow. Every other
+  answer matched the recommendation. Prompt 8 added that the email
+  address can be used to send customers their username; the agent read
+  this as the reset email stating the username, with no separate
+  "forgot my username" page, and said so. No follow-up questions were
+  asked. The agent filled in details that were not discussed and listed
+  them after writing the PRD: an unchanged email is refused, the notice
+  does not state the new address, there are no separate "done" pages,
+  the email change is a model method, and the URL layout.
+- **Sideways:** `/grill-me` first ran with only "yes" and no plan to
+  grill, so the agent searched the repo, found none, and asked for one.
+  In Phase 2 a long shell heredoc failed to parse and wrote nothing; the
+  agent moved the edits into a script file. Printing a real reset email
+  then showed that Django's console backend split the reset link across
+  two lines with a stray `=`, so it could not be copied from the
+  terminal; the agent added a small console backend (`config/mail.py`)
+  that was not in the plan, with a test and a sentence in the PRD. The
+  link-expiry test also departed from the plan: it builds links 59 and
+  61 minutes old instead of overriding the timeout setting. Two test
+  edits were written wrong and fixed before the suite ran green: a
+  mangled regex escape in Phase 2, and a stray test parameter in Phase 3
+  that a `sed` command failed to remove. Stopping the dev server ended
+  the background task but left the server answering on port 8000; the
+  agent listed the leftover processes, confirmed they all came from its
+  own launch, and ended the process tree. The agent never opened the new
+  pages in a browser in any phase, did not run the plan's fresh-clone
+  check, and sent no real mail through a provider. The dev server was
+  started for the account page to be viewed by hand; after the log was
+  first written, the user reported having viewed it and that all looked
+  correct and was running (prompt 21). Applying the migration left the tracked
+  `db.sqlite3` grading snapshot modified and uncommitted.
+
 ## 2026-10-04 — Designed product photos in a grill-me interview; wrote the PRD, plan, and handoff
 
 ### Prompts

@@ -1,0 +1,15 @@
+{# The inline confirm that replaces a card's buttons — never hx-confirm, #}
+{# whose browser dialog DaisyUI cannot style. Yes, delete re-renders the #}
+{# form's place, where the author's own card sits; Keep it swaps the card #}
+{# back unchanged. Include with review. #}
+<div id="review-{{ review.pk }}-actions" class="card-actions items-center justify-end" role="group" aria-label="Confirm delete">
+  <span class="text-sm font-medium">Delete this review?</span>
+  <button type="button" class="btn btn-error btn-xs"
+          hx-post="{% url 'reviews:confirm_delete' review.pk %}"
+          hx-target="#review-form-place"
+          hx-swap="innerHTML">Yes, delete</button>
+  <button type="button" class="btn btn-ghost btn-xs"
+          hx-get="{% url 'reviews:card' review.pk %}"
+          hx-target="#review-{{ review.pk }}"
+          hx-swap="outerHTML">Keep it</button>
+</div>

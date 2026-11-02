@@ -1,7 +1,7 @@
 """Project-wide pytest fixtures.
 
 Shared test data lives here as plain fixtures — no factories. The suite
-grows with the project; tests never invoke the seed command.
+grows with the project; tests that run the seed use temporary folders.
 """
 
 import datetime
@@ -13,7 +13,9 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
-from orders.models import Cart, CartItem, Coupon
+from careers.models import Job
+from careers.services import submit_application
+from orders.models import Cart, CartItem, Coupon, Order
 from products.models import Category, Product, Tag
 
 
@@ -23,6 +25,13 @@ def media_root(settings, tmp_path):
     nothing — the seed tests included — can touch the real ``media/``."""
     settings.MEDIA_ROOT = tmp_path / "media"
     return settings.MEDIA_ROOT
+
+
+@pytest.fixture(autouse=True)
+def private_media_root(settings, tmp_path):
+    """Point résumés at a temporary directory, as ``media_root`` does."""
+    settings.PRIVATE_MEDIA_ROOT = tmp_path / "private_media"
+    return settings.PRIVATE_MEDIA_ROOT
 
 
 @pytest.fixture
@@ -36,7 +45,9 @@ def photo():
 @pytest.fixture
 def customer(db):
     return get_user_model().objects.create_user(
-        username="customer", password="customer123"
+        username="customer",
+        email="customer@example.com",
+        password="customer123",
     )
 
 
@@ -44,10 +55,62 @@ def customer(db):
 def staff_user(db):
     return get_user_model().objects.create_user(
         username="employee",
+        email="employee@example.com",
         password="employee123",
         is_staff=True,
         job_title="Junior Thought Curator",
     )
+
+
+@pytest.fixture
+def recruiter(db):
+    return get_user_model().objects.create_user(
+        username="recruiter",
+        email="recruiter@example.com",
+        password="recruiter123",
+        is_staff=True,
+        is_recruiter=True,
+    )
+
+
+@pytest.fixture
+def make_job(db):
+    """Build a job, Open and published unless told otherwise."""
+
+    def make(**fields):
+        fields.setdefault("title", "Junior Thought Curator")
+        fields.setdefault("slug", "junior-thought-curator")
+        fields.setdefault("description", "Curate thoughts, gently.")
+        fields.setdefault("department", "Curation")
+        fields.setdefault("location", "Remote")
+        fields.setdefault("status", Job.Status.OPEN)
+        if fields["status"] != Job.Status.DRAFT:
+            fields.setdefault("published_at", COUPON_NOW)
+        return Job.objects.create(**fields)
+
+    return make
+
+
+@pytest.fixture
+def pdf_bytes():
+    return b"%PDF-1.4 a small demo resume"
+
+
+@pytest.fixture
+def resume(pdf_bytes):
+    """A valid résumé upload. Only its opening bytes are ever checked."""
+    return SimpleUploadedFile("resume.pdf", pdf_bytes, content_type="application/pdf")
+
+
+@pytest.fixture
+def make_application(pdf_bytes):
+    """Submit an application the way the app does, with its own file."""
+
+    def make(job, user, **fields):
+        upload = SimpleUploadedFile("resume.pdf", pdf_bytes)
+        return submit_application(job, user, upload, **fields)
+
+    return make
 
 
 @pytest.fixture
@@ -156,3 +219,28 @@ def cart_80(cart, category):
     )
     CartItem.objects.create(cart=cart, product=product, quantity=2)
     return cart
+
+
+@pytest.fixture
+def make_order(db):
+    """Build an order of one product for a user, in the given status."""
+
+    def make(user, product, status=Order.Status.DELIVERED):
+        order = Order.objects.create(
+            user=user, status=status, total=product.price, email=user.email
+        )
+        order.items.create(
+            product=product,
+            product_name=product.name,
+            unit_price=product.price,
+            quantity=1,
+        )
+        return order
+
+    return make
+
+
+@pytest.fixture
+def delivered_order(make_order, customer, product):
+    """``customer`` received ``product``: a confirmed buyer who may review it."""
+    return make_order(customer, product)
