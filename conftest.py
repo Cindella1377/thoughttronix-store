@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
+from careers.models import Job
 from orders.models import Cart, CartItem, Coupon, Order
 from products.models import Category, Product, Tag
 
@@ -51,6 +52,35 @@ def staff_user(db):
         is_staff=True,
         job_title="Junior Thought Curator",
     )
+
+
+@pytest.fixture
+def recruiter(db):
+    return get_user_model().objects.create_user(
+        username="recruiter",
+        email="recruiter@example.com",
+        password="recruiter123",
+        is_staff=True,
+        is_recruiter=True,
+    )
+
+
+@pytest.fixture
+def make_job(db):
+    """Build a job, Open and published unless told otherwise."""
+
+    def make(**fields):
+        fields.setdefault("title", "Junior Thought Curator")
+        fields.setdefault("slug", "junior-thought-curator")
+        fields.setdefault("description", "Curate thoughts, gently.")
+        fields.setdefault("department", "Curation")
+        fields.setdefault("location", "Remote")
+        fields.setdefault("status", Job.Status.OPEN)
+        if fields["status"] != Job.Status.DRAFT:
+            fields.setdefault("published_at", COUPON_NOW)
+        return Job.objects.create(**fields)
+
+    return make
 
 
 @pytest.fixture

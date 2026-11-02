@@ -1,6 +1,6 @@
 # CLAUDE.md — The ThoughtTronix Store
 
-A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes, `prd/product-images.md` and `plans/product-images.md` for product photos, `prd/account-email.md` and `plans/account-email.md` for account email and passwords, and `prd/wishlists.md` and `plans/wishlists.md` for wishlists.
+A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platform.md`) and the plan (`plans/core-platform.md`) record how the core platform was designed and built; `prd/coupons.md` and `plans/coupons.md` do the same for coupon codes, `prd/product-images.md` and `plans/product-images.md` for product photos, `prd/account-email.md` and `plans/account-email.md` for account email and passwords, `prd/wishlists.md` and `plans/wishlists.md` for wishlists, and `prd/careers.md` and `plans/careers.md` for the applicant tracking system.
 
 ## Commands
 
@@ -21,7 +21,10 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
   in `.env` switch to real delivery.
 - `accounts/` — custom user model (`accounts.User`, `AbstractUser` + nullable
   `job_title`). Roles are Django's own vocabulary: customers are plain users,
-  employees are `is_staff`, the admin is `is_superuser`. No role field, no Groups.
+  employees are `is_staff`, the admin is `is_superuser`. No Groups, and no role
+  field but one deliberate exception: `is_recruiter` opens hiring data to chosen
+  staff, because candidate data is not for everyone. `User.can_recruit` is the
+  one place that decides, and it needs `is_staff` as well (or a superuser).
   Every account has a required email, unique ignoring case. The app also
   carries the account page and the password reset and change flows, built
   on Django's own views. `User.change_email` is the one place an email
@@ -39,6 +42,8 @@ A server-rendered Django 6 storefront and back office. The PRD (`prd/core-platfo
   core's add, quantity, and remove, plus apply coupon, remove coupon, and
   dismiss the coupon notice.
 - `dashboard/` — the staff analytics dashboard
+- `careers/` — the applicant tracking system: public job pages and the
+  recruiter-only back office behind the Careers tab
 - `PROMPTS.md` — the AI-usage log; append entries, never rewrite history
 - `templates/` — project-level templates (`base.html`); app templates live in
   `templates/<app>/`

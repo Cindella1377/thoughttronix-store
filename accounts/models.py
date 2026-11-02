@@ -8,8 +8,9 @@ from django.template.loader import render_to_string
 class User(AbstractUser):
     """The store's user model.
 
-    Roles use Django's own vocabulary and nothing else: customers are
-    plain users, employees are ``is_staff``, the admin is ``is_superuser``.
+    Roles use Django's own vocabulary: customers are plain users,
+    employees are ``is_staff``, the admin is ``is_superuser``. One flag
+    goes beyond it: ``is_recruiter`` opens hiring data to chosen staff.
 
     Every account has an email of its own: password reset finds the
     account by it, so no two accounts may share one, whatever the
@@ -20,6 +21,9 @@ class User(AbstractUser):
     email = models.EmailField("email address")
     # Nullable per the PRD: an absent job title is unknown, not empty.
     job_title = models.CharField(max_length=150, null=True, blank=True)  # noqa: DJ001
+    # The one exception to Django's vocabulary: candidate data is not for
+    # all staff. Read it through ``can_recruit``.
+    is_recruiter = models.BooleanField(default=False)
 
     class Meta(AbstractUser.Meta):
         constraints = [
@@ -34,6 +38,11 @@ class User(AbstractUser):
     def display_name(self):
         """What other people see: the first name if set, else the username."""
         return self.first_name or self.username
+
+    @property
+    def can_recruit(self):
+        """Whether this user may reach hiring data: the one place that decides."""
+        return self.is_superuser or (self.is_staff and self.is_recruiter)
 
     def change_email(self, new_email):
         """Replace the account's email and tell the address it replaces.

@@ -19,6 +19,7 @@
           </a>
         </div>
         <div class="navbar-end gap-2">
+          <a href="{% url 'careers:jobs' %}" class="btn btn-ghost btn-sm">Careers</a>
           {% if user.is_authenticated %}
             {% if user.is_staff %}
               <a href="{% url 'products:manage_products' %}" class="btn btn-ghost btn-sm">

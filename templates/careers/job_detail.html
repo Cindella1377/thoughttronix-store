@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title }} — Careers{% endblock %}
+
+{% block content %}
+  <div class="breadcrumbs mb-6 text-sm">
+    <ul>
+      <li><a href="{% url 'careers:jobs' %}">Careers</a></li>
+      <li>{{ job.title }}</li>
+    </ul>
+  </div>
+
+  <h1 class="mb-4 text-4xl font-bold">{{ job.title }}</h1>
+  {% include "careers/partials/_job_badges.html" %}
+
+  <div class="mt-6 space-y-4">{{ job.description|linebreaks }}</div>
+
+  <div class="mt-8">
+    {% if job.is_closed %}
+      <div class="alert" role="status">
+        <span>This job is no longer accepting applications.</span>
+      </div>
+    {% elif user.is_authenticated %}
+      <div class="alert" role="status">
+        <span>Online applications open soon.</span>
+      </div>
+    {% else %}
+      <a href="{% url 'accounts:login' %}?next={{ job.get_absolute_url }}" class="btn btn-primary">
+        Sign in to apply
+      </a>
+    {% endif %}
+  </div>
+{% endblock %}
