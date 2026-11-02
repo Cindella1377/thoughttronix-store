@@ -12,6 +12,40 @@ MAX_RESUME_BYTES = MAX_RESUME_MB * 1024 * 1024
 MAX_NOTE_LENGTH = 2000
 
 
+class StageForm(StyledModelForm):
+    """A stage's name, plus its kind while it is new.
+
+    The app makes its own Entry and Withdrawn stages, and a kind never
+    changes after creation, because rules and history rely on it.
+    """
+
+    kind = forms.ChoiceField(
+        choices=[
+            (kind.value, kind.label)
+            for kind in (
+                Stage.Kind.IN_PROGRESS,
+                Stage.Kind.HIRED,
+                Stage.Kind.REJECTED,
+            )
+        ]
+    )
+
+    class Meta:
+        model = Stage
+        fields = ["name", "kind"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            del self.fields["kind"]
+
+    def save(self, commit=True):
+        if not self.instance.pk:
+            last = Stage.objects.order_by("-position").first()
+            self.instance.position = last.position + 1 if last else 0
+        return super().save(commit)
+
+
 class JobForm(StyledModelForm):
     """A job's details, plus its status once it exists.
 

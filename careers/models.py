@@ -2,7 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
 
@@ -151,6 +151,53 @@ class Stage(models.Model):
         """Whether a recruiter's move here sends an email. It can't be
         recalled, so staff are warned first."""
         return self.kind in (self.Kind.HIRED, self.Kind.REJECTED)
+
+    @property
+    def retire_blocker(self):
+        """Why this stage can't be retired, or an empty string if it can.
+
+        A stage with any application in it, open or closed, stays. So does
+        the last active stage of a kind the app can't run without.
+        """
+        if self.applications.exists():
+            return "Holds applications"
+        others = Stage.objects.filter(kind=self.kind, is_active=True)
+        if self.kind != self.Kind.IN_PROGRESS and not others.exclude(pk=self.pk):
+            return "Required"
+        return ""
+
+    def can_retire(self):
+        return not self.retire_blocker
+
+    def retire(self):
+        """Take the stage out of use. It stays in every timeline."""
+        if not self.can_retire():
+            raise ValueError(f"{self.name} cannot be retired.")
+        self.is_active = False
+        self.save(update_fields=["is_active"])
+
+    def restore(self):
+        """Put a retired stage back in use."""
+        self.is_active = True
+        self.save(update_fields=["is_active"])
+
+    def shift(self, offset):
+        """Swap places with an active neighbour; a no-op at either end.
+
+        Renumbers every stage, active ones first, so positions stay
+        distinct whatever they were before.
+        """
+        active = list(Stage.objects.filter(is_active=True))
+        index = active.index(self)
+        target = index + offset
+        if not 0 <= target < len(active):
+            return
+        active[index], active[target] = active[target], active[index]
+        stages = [*active, *Stage.objects.filter(is_active=False)]
+        for position, stage in enumerate(stages):
+            stage.position = position
+        with transaction.atomic():
+            Stage.objects.bulk_update(stages, ["position"])
 
 
 # What an applicant sees. Stage names are for staff and never reach them.

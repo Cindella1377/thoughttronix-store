@@ -60,4 +60,34 @@ urlpatterns = [
         views.AddNoteView.as_view(),
         name="note",
     ),
+    path(
+        "backoffice/careers/stages/",
+        views.ManageStageListView.as_view(),
+        name="stages",
+    ),
+    path(
+        "backoffice/careers/stages/new/",
+        views.ManageStageCreateView.as_view(),
+        name="stage_create",
+    ),
+    path(
+        "backoffice/careers/stages/<int:pk>/edit/",
+        views.ManageStageUpdateView.as_view(),
+        name="stage_edit",
+    ),
+    path(
+        "backoffice/careers/stages/<int:pk>/shift/",
+        views.StageShiftView.as_view(),
+        name="stage_shift",
+    ),
+    path(
+        "backoffice/careers/stages/<int:pk>/retire/",
+        views.StageRetireView.as_view(),
+        name="stage_retire",
+    ),
+    path(
+        "backoffice/careers/stages/<int:pk>/restore/",
+        views.StageRestoreView.as_view(),
+        name="stage_restore",
+    ),
 ]

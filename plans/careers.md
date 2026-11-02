@@ -34,7 +34,7 @@ Durable decisions that apply across all phases:
   - `/backoffice/careers/applications/<pk>/move/`
   - `/backoffice/careers/applications/<pk>/reopen/`
   - `/backoffice/careers/applications/<pk>/notes/`
-  - `/backoffice/careers/stages/`
+  - `/backoffice/careers/stages/`, with `new/`, `<pk>/edit/`, `<pk>/shift/`, `<pk>/retire/`, and `<pk>/restore/`
   - `/backoffice/careers/reports/`
 
 ---

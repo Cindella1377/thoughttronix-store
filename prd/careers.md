@@ -174,6 +174,11 @@ Emails are sent with `transaction.on_commit`, so nobody hears about a move that 
 | `reopen` | `/backoffice/careers/applications/<pk>/reopen/` | Reopen (POST) |
 | `note` | `/backoffice/careers/applications/<pk>/notes/` | Add a note (POST, HTMX) |
 | `stages` | `/backoffice/careers/stages/` | Stage administration |
+| `stage_create` | `/backoffice/careers/stages/new/` | New stage |
+| `stage_edit` | `/backoffice/careers/stages/<pk>/edit/` | Rename a stage |
+| `stage_shift` | `/backoffice/careers/stages/<pk>/shift/` | Move up or down (POST) |
+| `stage_retire` | `/backoffice/careers/stages/<pk>/retire/` | Retire (POST) |
+| `stage_restore` | `/backoffice/careers/stages/<pk>/restore/` | Restore (POST) |
 | `reports` | `/backoffice/careers/reports/` | Hiring report |
 
 The `jobs` paths before `<slug>` are fixed, so `applications` is a reserved slug.

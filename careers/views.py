@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import Count
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -17,7 +18,7 @@ from django.views.generic import (
 
 from accounts.mixins import RecruiterRequiredMixin
 
-from .forms import JobForm, MoveForm, NoteForm, ReopenForm, ResumeForm
+from .forms import JobForm, MoveForm, NoteForm, ReopenForm, ResumeForm, StageForm
 from .models import Application, Job, Stage
 from .services import (
     ApplicationError,
@@ -334,3 +335,68 @@ class AddNoteView(RecruiterRequiredMixin, View):
                 "note_form": form,
             },
         )
+
+
+class ManageStageListView(RecruiterRequiredMixin, ListView):
+    """The shared list of stages, active and retired."""
+
+    template_name = "careers/manage_stages.html"
+    context_object_name = "stages"
+    extra_context = {"section": "careers"}
+
+    def get_queryset(self):
+        return Stage.objects.annotate(application_count=Count("applications"))
+
+
+class ManageStageCreateView(RecruiterRequiredMixin, SuccessMessageMixin, CreateView):
+    model = Stage
+    form_class = StageForm
+    template_name = "careers/manage_stage_form.html"
+    success_url = reverse_lazy("careers:stages")
+    success_message = "“%(name)s” added."
+    extra_context = {"section": "careers"}
+
+
+class ManageStageUpdateView(RecruiterRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = Stage
+    form_class = StageForm
+    template_name = "careers/manage_stage_form.html"
+    success_url = reverse_lazy("careers:stages")
+    success_message = "“%(name)s” saved."
+    extra_context = {"section": "careers"}
+
+
+class StageShiftView(RecruiterRequiredMixin, View):
+    """Move a stage one place up or down the list."""
+
+    OFFSETS = {"up": -1, "down": 1}
+
+    def post(self, request, pk):
+        stage = get_object_or_404(Stage, pk=pk, is_active=True)
+        offset = self.OFFSETS.get(request.POST.get("direction"))
+        if offset:
+            stage.shift(offset)
+        return redirect("careers:stages")
+
+
+class StageRetireView(RecruiterRequiredMixin, View):
+    def post(self, request, pk):
+        stage = get_object_or_404(Stage, pk=pk)
+        try:
+            stage.retire()
+        except ValueError:
+            messages.error(
+                request,
+                f"“{stage.name}” can't be retired: {stage.retire_blocker.lower()}.",
+            )
+        else:
+            messages.success(request, f"“{stage.name}” retired.")
+        return redirect("careers:stages")
+
+
+class StageRestoreView(RecruiterRequiredMixin, View):
+    def post(self, request, pk):
+        stage = get_object_or_404(Stage, pk=pk)
+        stage.restore()
+        messages.success(request, f"“{stage.name}” restored.")
+        return redirect("careers:stages")
